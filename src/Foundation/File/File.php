@@ -2,7 +2,6 @@
 
 namespace X2Core\Foundation\File;
 
-
 /**
  * Class File
  * @package X2Core\Foundation\File
