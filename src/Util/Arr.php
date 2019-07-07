@@ -111,6 +111,11 @@ class Arr
         return new self($arr);
     }
 
+    public static function has($arr, $elm)
+    {
+        return in_array($elm, $arr);
+    }
+
     /**
      * @param $func
      * @return mixed

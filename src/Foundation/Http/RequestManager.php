@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 class RequestManager
 {
     /**
-     * @var RequestRule[]
+     * @var RequestRule[][]
      */
     private $rules;
 
@@ -24,8 +24,13 @@ class RequestManager
     private $request;
 
     /**
+     * @var mixed
+     */
+    private $bundle;
+
+    /**
      * @param $classHandle
-     * @return mixed
+     * @return RequestRule
      */
     public function createRuleToHandle($classHandle){
         if (!isset($this->rules[$classHandle])){
@@ -37,6 +42,7 @@ class RequestManager
 
     /**
      * @param $classHandle
+     * @param $handle
      */
     public function appendRuleToHandle($classHandle, $handle){
         if (!isset($this->rules[$classHandle])){
@@ -54,6 +60,9 @@ class RequestManager
         return $this->request;
     }
 
+    /**
+     * @param Request|NULL $request
+     */
     public function dispatchRequest(Request $request = NULL){
         if(is_null($request)){
             if(is_null($this->request))
@@ -62,12 +71,48 @@ class RequestManager
             $this->request = $request;
         }
         foreach ($this->rules as $handle => $rules){
-            $this->matchRule($rules);
+            $this->processRules($handle, $rules);
         }
     }
 
-    private function matchRule($rule)
+    /**
+     * @param $handle
+     * @param RequestRule[] $rules
+     */
+    private function processRules($handle, $rules)
     {
+
+        $length = count($rules);
+        for ($i = 0; $i < $length; $i++){
+            if($rules[$i]->match($this->request )){
+                $this->launchHandle($handle);
+            }
+        }
     }
 
+    /**
+     * @param $bundle
+     */
+    public function setBundle($bundle)
+    {
+        $this->bundle = $bundle;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getBundle()
+    {
+        return $this->bundle;
+    }
+
+    /**
+     * @param $handle
+     */
+    private function launchHandle($handle)
+    {
+        /** @var RequestHandler $handleRequest */
+        $handleRequest = new $handle;
+        $handleRequest->onRequest($this->request, $this->bundle);
+    }
 }

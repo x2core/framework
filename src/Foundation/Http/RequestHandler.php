@@ -26,11 +26,11 @@ abstract class RequestHandler
     protected $content = "";
 
     /**
-     * @param $result
+     * @param Request $result
      * @param $bundle
      * @return mixed
      */
-    abstract function onRequest($result, $bundle);
+    abstract function onRequest(Request $result, $bundle);
 
     /**
      * @param $result

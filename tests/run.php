@@ -14,8 +14,12 @@ require_once BASEDIR_RUNTEST . "EventTest.php";
 require_once BASEDIR_RUNTEST . "HubTest.php";
 require_once BASEDIR_RUNTEST . "ValidatorTest.php";
 require_once BASEDIR_RUNTEST . "FileTest.php";
+require_once BASEDIR_RUNTEST . "IntroTest.php";
+require_once BASEDIR_RUNTEST . "WebTest.php";
 
 EventTest::toTest();
 HubTest::toTest();
 ValidatorTest::toTest();
 FileTest::toTest();
+IntroTest::toTest();
+WebTest::toTest();

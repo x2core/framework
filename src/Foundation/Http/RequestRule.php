@@ -5,6 +5,10 @@ namespace X2Core\Foundation\Http;
 
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Class RequestRule
+ * @package X2Core\Foundation\Http
+ */
 class RequestRule
 {
     const GET_METHOD = 'GET';
@@ -13,6 +17,7 @@ class RequestRule
     const PATCH_METHOD = 'PATCH';
     const DELETE_METHOD = 'DELETE';
     const HEAD_METHOD = 'HEAD';
+    const ROOT_PATH = '/';
 
     /**
      * @var string
@@ -20,9 +25,9 @@ class RequestRule
     private $path;
 
     /**
-     * @var string
+     * @var string[]
      */
-    private $method;
+    private $method = [];
 
     /**
      * @var string[]
@@ -49,10 +54,12 @@ class RequestRule
 
     /**
      * @param mixed $path
+     * @return $this
      */
     public function setPath($path)
     {
-        $this->path = $path;
+        $this->parsePath($path);
+        return $this;
     }
 
     /**
@@ -65,10 +72,12 @@ class RequestRule
 
     /**
      * @param mixed $method
+     * @return $this
      */
     public function setMethod($method)
     {
         $this->method = $method;
+        return $this;
     }
 
     /**
@@ -81,10 +90,12 @@ class RequestRule
 
     /**
      * @param string $parameter
+     * @return $this
      */
     public function setParameter($parameter)
     {
         $this->parameter[] = $parameter;
+        return $this;
     }
 
     /**
@@ -107,16 +118,18 @@ class RequestRule
      * @param $string
      */
     public function parsePath($string){
-       $this->path = preg_replace('/{[A-z]}/', "(.*)", $string);
-
+        $this->path = $string;
     }
 
     /**
      * @param Request $request
-     * @return int
+     * @return bool
      */
     public function match(Request $request){
-        return preg_match($this->path, $request->getPathInfo(), $this->parameter);
+//        $parameters = [];
+        $result = $request->getPathInfo() === $this->path;
+//        $this->resolveParameters($parameters);
+        return $result;
     }
 
     /**
@@ -137,4 +150,16 @@ class RequestRule
         $this->metadata[$name] = $metadata;
     }
 
+    /**
+     * @param array $parameters
+     */
+    private function resolveParameters(array &$parameters)
+    {
+        $length = count($parameters);
+        if($length > 1){
+            $parameters = array_slice($parameters, 1);
+        }else{
+            $parameters = [];
+        }
+    }
 }
