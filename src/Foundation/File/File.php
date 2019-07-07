@@ -175,6 +175,7 @@ class File implements \Iterator, \Countable
         foreach ($this as $data){
             $newFile->write($data);
         }
+        $newFile->close();
     }
 
     /**
