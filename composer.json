@@ -1,0 +1,13 @@
+{
+    "name":"oliver021/x2core",
+    "description": "A library to provider code to develop Web app",
+    "author": "Oliver Valiente <oliver021val@gmail.com>",
+    "license":"MIT",
+    "require": {
+        "symfony/http-foundation": "^4.3",
+        "doctrine/orm": "^2.6"
+    },
+    "psr4-autoload": {
+      
+    }
+}
