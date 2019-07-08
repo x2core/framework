@@ -11,6 +11,7 @@ use X2Core\Util\Str;
  */
 abstract class Model
 {
+    const STD_KEY_NAME = 'id';
     /**
      * @var null|string
      */

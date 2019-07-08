@@ -5,6 +5,7 @@ namespace Eyrene\Database\Connector;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
+use X2Core\Foundation\Database\Model;
 
 /**
  * Class DatabaseAccessor
@@ -76,9 +77,10 @@ class DatabaseAccessor
      * @param $data
      * @return void
      */
-    public function update($table, $data){
+    public function update($table, $data, $id, $key = Model::STD_KEY_NAME){
             $this->connection->createQueryBuilder()->update($table)
                 ->values($data)
+                ->where("c.{$key} = :id")->setValue('id',$id)
                 ->execute();
     }
 
