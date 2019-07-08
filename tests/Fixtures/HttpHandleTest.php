@@ -25,6 +25,6 @@ class HttpHandleTest extends RequestHandler
      */
     function onReject($result, $bundle)
     {
-        // TODO: Implement onReject() method.
+        // Not Implement
     }
 }

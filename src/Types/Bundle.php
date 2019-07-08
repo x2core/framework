@@ -9,7 +9,7 @@ namespace X2Core\Types;
  * This class is package manager with container system
  *
  */
-class Bundle implements \ArrayAccess
+class Bundle implements \ArrayAccess, \Countable
 {
     /**
      * @var mixed[]
@@ -119,5 +119,19 @@ class Bundle implements \ArrayAccess
     public function offsetUnset($offset)
     {
         $this->__unset($offset);
+    }
+
+    /**
+     * Count elements of an object
+     * @link http://php.net/manual/en/countable.count.php
+     * @return int The custom count as an integer.
+     * </p>
+     * <p>
+     * The return value is cast to an integer.
+     * @since 5.1.0
+     */
+    public function count()
+    {
+        return count($this->packages);
     }
 }

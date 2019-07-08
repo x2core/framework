@@ -126,9 +126,7 @@ class RequestRule
      * @return bool
      */
     public function match(Request $request){
-//        $parameters = [];
         $result = $request->getPathInfo() === $this->path;
-//        $this->resolveParameters($parameters);
         return $result;
     }
 
