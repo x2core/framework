@@ -5,7 +5,7 @@ require_once BASEDIR_RUNTEST . '../vendor/autoload.php';
 
 // manual autoload src
 $autoload = new \Composer\Autoload\ClassLoader();
-$autoload->addPsr4('X2Core\\', array(BASEDIR_RUNTEST . '../src'));
+$autoload->addPsr4('X2Core\\', array(BASEDIR_RUNTEST . '../src/X2Core'));
 $autoload->addPsr4('Test\\', array(BASEDIR_RUNTEST . 'Fixtures', BASEDIR_RUNTEST . 'Test' ));
 $autoload->register();
 
