@@ -2,7 +2,7 @@
 
 namespace X2Core\Foundation\Http;
 
-
+use \Closure;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -14,9 +14,9 @@ use Symfony\Component\HttpFoundation\Request;
 class RequestManager
 {
     /**
-     * @var RequestRule[][]
+     * @var string[]
      */
-    private $rules;
+    private $rules = [];
 
     /**
      * @var  Request
@@ -30,26 +30,15 @@ class RequestManager
 
     /**
      * @param $classHandle
-     * @return RequestRule
+     * @return void
+     * @throws \Exception
      */
-    public function createRuleToHandle($classHandle){
-        if (!isset($this->rules[$classHandle])){
-            $this->rules[$classHandle] = [];
+    public function pushHandle($classHandle){
+        if(is_subclass_of($classHandle, RequestHandler::class)){
+            $this->rules[] = $classHandle;
+        }else{
+            throw new \Exception("The class handler is not base " . RequestHandler::class);
         }
-
-        return $this->rules[$classHandle][] = new RequestRule();
-    }
-
-    /**
-     * @param $classHandle
-     * @param $handle
-     */
-    public function appendRuleToHandle($classHandle, $handle){
-        if (!isset($this->rules[$classHandle])){
-            $this->rules[$classHandle] = [];
-        }
-
-        $this->rules[$classHandle][] = $handle;
     }
 
     /**
@@ -64,28 +53,13 @@ class RequestManager
      * @param Request|NULL $request
      */
     public function dispatchRequest(Request $request = NULL){
-        if(is_null($request)){
-            if(is_null($this->request))
-                $this->request = Request::createFromGlobals();
-        }else{
-            $this->request = $request;
-        }
-        foreach ($this->rules as $handle => $rules){
-            $this->processRules($handle, $rules);
-        }
-    }
-
-    /**
-     * @param $handle
-     * @param RequestRule[] $rules
-     */
-    private function processRules($handle, $rules)
-    {
-
-        $length = count($rules);
-        for ($i = 0; $i < $length; $i++){
-            if($rules[$i]->match($this->request )){
-                $this->launchHandle($handle);
+        foreach ($this->rules as $handler){
+            $handler  = new $handler;
+            /** @var RequestHandler $handler */
+            if($handler->validate($this->request)){
+                $handler->onRequest($this->request, $this->bundle);
+            }else{
+                $handler->onReject($this->request, $this->bundle);
             }
         }
     }

@@ -8,6 +8,10 @@ use ReflectionException;
 use ReflectionFunction;
 use TypeError;
 
+/**
+ * Class Reflection
+ * @package X2Core\Util
+ */
 class Reflection
 {
     /**

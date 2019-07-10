@@ -20,7 +20,7 @@ abstract class Model
     /**
      * @var string
      */
-    private $key;
+    private $key = self::STD_KEY_NAME;
 
     /**
      * @var mixed[]

@@ -30,6 +30,11 @@ trait ConfigSupport
         }
     }
 
+    /**
+     * @param $source
+     * @param null $fallback
+     * @return $this|mixed|null
+     */
     public function &getConfigSafe($source, $fallback = null){
         $ref =& $this->config($source);
         if($ref === null){

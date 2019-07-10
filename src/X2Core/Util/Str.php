@@ -2,7 +2,10 @@
 
 namespace X2Core\Util;
 
-
+/**
+ * Class Str
+ * @package X2Core\Util
+ */
 class Str
 {
     /**
@@ -52,5 +55,19 @@ class Str
         return $result;
     }
 
-
+    /**
+     * @param $str
+     * @param $offset
+     * @param null $length
+     * @return string
+     */
+    public static function slice($str, $offset, $length = NULL)
+    {
+        $result = "";
+        $lenStr = ($length !== NULL) ? $length+$offset : strlen($str);
+        for($i = $offset; $i < $lenStr; $i++){
+            $result .= $str[$i];
+        }
+        return $result;
+    }
 }

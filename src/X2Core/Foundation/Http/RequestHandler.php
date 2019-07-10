@@ -2,7 +2,7 @@
 
 namespace X2Core\Foundation\Http;
 
-
+use Closure;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +15,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 abstract class RequestHandler
 {
+    /**
+     * @var Closure[]
+     */
+    protected $gates = [];
+
     /**
      * @var Response
      */
@@ -56,10 +61,10 @@ abstract class RequestHandler
     }
 
     /**
-     * @param \Closure $fn
+     * @param Closure $fn
      * @internal param string $content
      */
-    public function appendContent(\Closure $fn)
+    public function appendContent(Closure $fn)
     {
         ob_start();
         $fn->call($this);
@@ -67,11 +72,34 @@ abstract class RequestHandler
     }
 
     /**
-     * @internal param string $content
+     * @return void
      */
     public function cleanContent()
     {
         $this->content = "";
+    }
+
+    /**
+     * @param Request $request
+     * @return bool
+     */
+    public function validate(Request $request)
+    {
+        $length = count($this->gates);
+        for($i = 0; $i < $length; $i++){
+            if(!$this->gates[0]($request))
+                return false;
+        }
+        return true;
+    }
+
+    /**
+     * @param Closure $gate
+     * @return void
+     */
+    public function pushGates($gate)
+    {
+         $this->gates[] = $gate;
     }
 
     /**
@@ -124,5 +152,4 @@ abstract class RequestHandler
         else
             $this->response->send();
     }
-
 }
