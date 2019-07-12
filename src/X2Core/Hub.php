@@ -1,6 +1,7 @@
 <?php
 
 namespace X2Core;
+
 use RuntimeException;
 
 /**

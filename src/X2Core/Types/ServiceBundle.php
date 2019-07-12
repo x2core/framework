@@ -89,7 +89,7 @@ class ServiceBundle extends Bundle
      * @throws ServiceNotFound
      * @return mixed
      */
-    public function make($name, array $arguments = []){
+    public function make($name, array ...$arguments){
         if(!isset($this->factories[$name])) throw new ServiceNotFound("the factory {$name} not found");
         return $this->factories[$name]->call($this, ...$arguments);
     }
