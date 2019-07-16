@@ -6,7 +6,6 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use X2Core\Types\ServiceBundle;
 use X2Core\Contracts\ProviderInterface;
-use X2Core\Foundation\Services\Log as AppLog;
 
 class Log implements ProviderInterface
 {

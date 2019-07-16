@@ -62,7 +62,6 @@ abstract class RequestHandler
 
     /**
      * @param Closure $fn
-     * @internal param string $content
      */
     public function appendContent(Closure $fn)
     {

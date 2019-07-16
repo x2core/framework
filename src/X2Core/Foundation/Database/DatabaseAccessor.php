@@ -1,11 +1,11 @@
 <?php
 
-namespace Eyrene\Database\Connector;
+namespace X2Core\Foundation\Database;
 
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
-use X2Core\Foundation\Database\Model;
+use X2Core\Util\Str;
 
 /**
  * Class DatabaseAccessor
@@ -44,8 +44,10 @@ class DatabaseAccessor
      * @param $field
      * @return array
      */
-    public function find($table, $id, $field){
-        return $this->connection->createQueryBuilder()->from($table)
+    public function find($table, $id, $field = Model::STD_KEY_NAME){
+        return $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($table)
             ->where("{$field} = :value")
             ->setParameter('value', $id)
             ->execute()->fetchAll();
@@ -56,8 +58,10 @@ class DatabaseAccessor
      * @param $rules
      * @return array
      */
-    public function findByRules($table, $rules){
-        $query = $this->connection->createQueryBuilder()->from($table);
+    public function findByRules($table, $rules, $values = NULL){
+        $query = $this->connection->createQueryBuilder()
+            ->from($table)
+            ->select($values ? $values : '*');
         $this->processRules($rules, $query);
         return $query->execute()->fetchAll();
     }
@@ -77,11 +81,13 @@ class DatabaseAccessor
      * @param $data
      * @return void
      */
-    public function update($table, $data, $id, $key = Model::STD_KEY_NAME){
-            $this->connection->createQueryBuilder()->update($table)
-                ->values($data)
-                ->where("c.{$key} = :id")->setValue('id',$id)
-                ->execute();
+    public function update($table, array $data, $id, $key = Model::STD_KEY_NAME){
+            $update = $this->connection->createQueryBuilder()->update($table)
+                ->where("{$key} = :id")->setParameter('id', $id);
+            foreach ($data as $key => $value){
+                $update->set($key, $value);
+            }
+            $update->execute();
     }
 
     /**
@@ -118,9 +124,11 @@ class DatabaseAccessor
             if(!isset($index[1])){
                 $index[1] = "equal";
             }
-
             $mode = ($index[0][0] === "|") ? 'orWhere' : 'andWhere';
-                $query->{$mode}($this->resolveExp($index[1],$query,$index[0],$value));
+            if($mode === 'orWhere'){
+                $index[0] = Str::slice($index[0], 1);
+            }
+            $query->{$mode}($this->resolveExp($index[1],$query,$index[0],$value));
         }
     }
 
@@ -165,6 +173,14 @@ class DatabaseAccessor
 
             case 'greater-than':
                 $result = $query->expr()->gt($x,$y);
+                break;
+
+            case 'not-null':
+                $result = $query->expr()->isNull($x);
+                break;
+
+            case 'null':
+                $result = $query->expr()->isNotNull($x);
                 break;
         }
         return $result;

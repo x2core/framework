@@ -3,9 +3,13 @@
 namespace Foundation\Database;
 
 
-use Eyrene\Database\Connector\DatabaseAccessor;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Query\QueryBuilder;
 use X2Core\Contracts\ActiveRecordInterface;
+use X2Core\Exceptions\RuntimeException;
+use X2Core\Foundation\Database\DatabaseAccessor;
 use X2Core\Foundation\Database\Model;
+use X2Core\Util\Str;
 
 class ActiveRecord extends DatabaseAccessor implements ActiveRecordInterface
 {
@@ -19,6 +23,13 @@ class ActiveRecord extends DatabaseAccessor implements ActiveRecordInterface
      * @var string
      */
     private $keyId = Model::STD_KEY_NAME;
+
+    public function __construct(Connection $connection, $table, $keyId)
+    {
+        parent::__construct($connection);
+        $this->table = $table;
+        $this->keyId = $keyId;
+    }
 
     /**
      * @param $data
@@ -69,6 +80,22 @@ class ActiveRecord extends DatabaseAccessor implements ActiveRecordInterface
         return true;
     }
 
+//    public function __call($name, $arguments)
+//    {
+//        $cmd = Str::camelCaseParse($name);
+//       switch ($cmd[0]){
+//           case 'get':
+//               return $this->getJoin(array_slice($cmd, 1), $arguments);
+//               break;
+//           case 'belong':
+//               return $this->getBelong(array_slice($cmd, 1), $arguments);
+//               break;
+//           default:
+//               throw new RuntimeException('the magic method not match anything');
+//               break;
+//       }
+//    }
+
     /**
      * @return mixed
      */
@@ -100,4 +127,24 @@ class ActiveRecord extends DatabaseAccessor implements ActiveRecordInterface
     {
         $this->keyId = $keyId;
     }
+
+//    /**
+//     * @param $elms
+//     * @param $opt
+//     * @return QueryBuilder|mixed[]
+//     */
+//    private function getJoin($elms, $opt)
+//    {
+//        $tableJoin = implode('_', $elms);
+//        $keyJoin = isset($opt['keyJoin']) ? $opt['keyJoin'] : $this->table .'_'. $this->keyId;
+//        $query = $this->connection->createQueryBuilder()
+//            ->from($tableJoin)
+//            ->where( 't', "t.{$keyJoin} = f.{$this->keyId}")
+//            ->select('*');
+//            if($opt['fetch_query']){
+//                return $query;
+//            }
+//        return $query->execute()->fetchAll();
+//    }
+
 }
