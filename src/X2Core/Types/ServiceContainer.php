@@ -11,8 +11,9 @@ use X2Core\Util\Reflection;
  * Class ServiceBundle
  * @package X2Core\Types
  */
-class ServiceBundle extends Bundle
+trait ServiceContainer
 {
+    use Container;
 
     /**
      * @var Closure[]

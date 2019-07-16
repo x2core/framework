@@ -3,20 +3,20 @@
 namespace X2Core\Contracts;
 
 
-use X2Core\Types\ServiceBundle;
+use X2Core\Contracts\ContainerInterface;
 
 interface ProviderInterface
 {
     /**
-     * @param ServiceBundle $bundle
+     * @param ContainerInterface $bundle
      *
      * @desc this method is to register services
      * @return void
      */
-    public function register(ServiceBundle $bundle);
+    public function register(ContainerInterface $bundle);
 
     /**
      * @return void
      */
-    public function destroy(ServiceBundle $bundle);
+    public function destroy(ContainerInterface $bundle);
 }
