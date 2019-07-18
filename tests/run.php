@@ -23,5 +23,5 @@ HubTest::toTest();
 ValidatorTest::toTest();
 FileTest::toTest();
 IntroTest::toTest();
-DatabaseTest::toTest();
+//DatabaseTest::toTest();
 //WebTest::toTest();

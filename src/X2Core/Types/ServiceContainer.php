@@ -3,6 +3,7 @@
 namespace X2Core\Types;
 
 use Closure;
+use X2Core\Contracts\ContainerInterface;
 use X2Core\Contracts\ProviderInterface;
 use X2Core\Contracts\ServiceNotFound;
 use X2Core\Util\Reflection;
