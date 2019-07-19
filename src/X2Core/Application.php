@@ -29,5 +29,14 @@ abstract class Application extends Dispatcher
      * @abstract
      * @return void
      */
-    abstract protected function deploy();
+    abstract public function deploy();
+
+
+
+    /**
+     * return void
+     */
+    public function exit(){
+
+    }
 }
