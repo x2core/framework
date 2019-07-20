@@ -2,3 +2,6 @@ vendor/
 composer.lock
 .idea/
 trash/
+test/cache/*
+test/app-experimental/*
+app-test-server.bat

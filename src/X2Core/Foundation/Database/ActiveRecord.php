@@ -4,12 +4,9 @@ namespace Foundation\Database;
 
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Query\QueryBuilder;
 use X2Core\Contracts\ActiveRecordInterface;
-use X2Core\Exceptions\RuntimeException;
 use X2Core\Foundation\Database\DatabaseAccessor;
 use X2Core\Foundation\Database\Model;
-use X2Core\Util\Str;
 
 class ActiveRecord extends DatabaseAccessor implements ActiveRecordInterface
 {

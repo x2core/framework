@@ -7,6 +7,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\Common\Cache\Cache;
 use Monolog\Handler\HandlerInterface;
 use Foundation\Database\ActiveRecord;
+use X2Core\Contracts\ActiveRecordInterface;
+use X2Core\Foundation\Database\Connector\DBAL;
 use X2Core\Foundation\Events\AppDeploy;
 use X2Core\Exceptions\RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,10 +30,12 @@ use X2Core\Util\URL;
  *
  * @desc This class is shortcut to use the all ability to need
  * to create a web app of simple way and quickly
+ *
+ * QuickApplication is a implementation centralized but base on evetns and system routes
+ * that allow make flexible web app
  */
 class QuickApplication extends Application
 {
-
     /**
      * @var Cache
      */
@@ -73,6 +77,11 @@ class QuickApplication extends Application
     private $middlewareCollect = [];
 
     /**
+     * @var mixed[] services
+     */
+    private $services;
+
+    /**
      * QuickApplication constructor.
      * @param array|null $config
      */
@@ -90,6 +99,9 @@ class QuickApplication extends Application
                 $this->getHandlesLog());
         }
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
+    }
+
+    public static function fromCache(){
     }
 
     /**
@@ -230,14 +242,21 @@ class QuickApplication extends Application
      * @param $url
      * @param $class
      */
-    public function controller($url, $class){
-    }
+//    public function controller($url, $class){
+//
+//    }
 
     /**
      * @param $url
      * @param $class
+     *
+     * @desc With url make rest routes base on method
      */
     public function rest($url, $class){
+        $app = $this;
+        $this->all($url, function(Request $request, Response $response) use ($class, $app){
+            (new $class($app))->{strtolower($request->getMethod())}($request, $response);
+        });
     }
 
     /**
@@ -254,9 +273,28 @@ class QuickApplication extends Application
      * @param null|mixed[] $hydrate
      *
      * @desc resolve a model of table record in the preset database connection
-     * @return ActiveRecord
+     * @return ActiveRecordInterface
      */
     public function model($record, $hydrate = NULL){
+        if($this->database && $this->config('app.database.use')){
+            $this->databaseInit();
+        }
+        $key = $this->config('app.database.std-key');
+        if(class_exists($record)){
+            return new $record($this->database, $key, $hydrate);
+        }else{
+            return new ActiveRecord($this->database, $record, $key);
+        }
+    }
+
+    /**
+     * @param $name
+     *
+     * @desc change db connection params
+     */
+    public function changeDBConnection($name){
+        if($this->config('app.database.' . $name))
+            $this->databaseInit($name);
     }
 
     /**
@@ -384,6 +422,14 @@ class QuickApplication extends Application
     }
 
     /**
+     * @param $service
+     * @param callable $fn
+     */
+    public function service($service, callable $fn){
+
+    }
+
+    /**
      * @return Request
      */
     public function getRequest()
@@ -449,6 +495,22 @@ class QuickApplication extends Application
     }
 
     /**
+     * @return Cache
+     */
+    public function getCache()
+    {
+        return $this->cache;
+    }
+
+    /**
+     * @param Cache $cache
+     */
+    public function setCache(Cache $cache)
+    {
+        $this->cache = $cache;
+    }
+
+    /**
      * @desc to prepare app system
      * @return void
      */
@@ -482,18 +544,17 @@ class QuickApplication extends Application
     }
 
     /**
-     * @return Cache
+     * @param null $usage
+     * @return void
      */
-    public function getCache()
+    private function databaseInit($usage = NULL)
     {
-        return $this->cache;
-    }
-
-    /**
-     * @param Cache $cache
-     */
-    public function setCache(Cache $cache)
-    {
-        $this->cache = $cache;
+        $current =  $usage ?? $this->config('app.database.use');
+        $config = $this->config('app.database.' . $current);
+        $this->database = DBAL::makeConnection($config['adapter'],
+            $config['host'],
+            $config['user'],
+            $config['pass'],
+            $config['name']);
     }
 }

@@ -34,7 +34,7 @@ class Arr implements \Countable, \Iterator
      * @param bool $flag
      * @return bool|array
      */
-    static function contains(array $arr, $indexes,$flag = false){
+    public static function contains(array $arr, $indexes,$flag = false){
         $collects = [];
         if(is_string($indexes)){
             $indexes = explode(',',$indexes);

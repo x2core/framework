@@ -24,7 +24,6 @@ class Str
                 $result[++$j] = strtolower($str[$i]);
             else
                 $result[$j] .= $str[$i];
-
         }
         return $result;
     }
