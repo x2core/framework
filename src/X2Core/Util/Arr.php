@@ -1,13 +1,14 @@
 <?php
 
 namespace X2Core\Util;
+use ArrayIterator;
 use Exception;
 
 /**
  * Class Arr
  * @package Eyrene\Support
  */
-class Arr implements \Countable, \Iterator
+class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
 {
     /**
      * @var array
@@ -134,6 +135,13 @@ class Arr implements \Countable, \Iterator
     }
 
     /**
+     * @param array ...$arr
+     */
+    public function diff( ...$arr){
+        $this->arr = array_diff($this->arr,...$arr);
+    }
+
+    /**
      * @param $func
      * @return mixed
      * @internal param $name
@@ -216,6 +224,47 @@ class Arr implements \Countable, \Iterator
     }
 
     /**
+     * @param bool $descending
+     * @param null $sortFlags
+     * @return bool
+     */
+    public function sortByKey($descending = false, $sortFlags = NULL){
+       return $descending ? krsort($this->arr, $sortFlags) : ksort($this->arr, $sortFlags);
+    }
+
+    /**
+     * @param bool $descending
+     * @param null $sortFlags
+     * @return bool
+     */
+    public function sortByValue($descending = false, $sortFlags = NULL){
+        return $descending ? rsort($this->arr, $sortFlags) : sort($this->arr, $sortFlags);
+    }
+
+    /**
+     * @param callable $fn
+     * @param int $target
+     * @return bool
+     */
+    public function sortByComparison(callable  $fn, $target = 0){
+        return $target ? uksort($this->arr, $fn) : usort($this->arr, $fn);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function min(){
+        return min($this->arr);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function max(){
+        return max($this->arr);
+    }
+
+    /**
      * Count elements of an object
      * @link http://php.net/manual/en/countable.count.php
      * @return int The custom count as an integer.
@@ -283,5 +332,115 @@ class Arr implements \Countable, \Iterator
     public function rewind()
     {
         reset($this->arr);
+    }
+
+    /**
+     * @return ArrayIterator
+     */
+    public function getIterator(){
+        return new ArrayIterator($this->arr);
+    }
+
+    /**
+     * @param int $options
+     * @return string
+     */
+    public function toJson($options = 0){
+        return json_encode($this->arr, $options);
+    }
+
+    /**
+     * @param null $name
+     * @return mixed
+     */
+    public function toXml($name = NULL){
+        return (new DOM("1.0", $name ?? "array"))->appendArray($this->arr)->toXML();
+    }
+
+    /**
+     * Whether a offset exists
+     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
+     * @param mixed $offset <p>
+     * An offset to check for.
+     * </p>
+     * @return boolean true on success or false on failure.
+     * </p>
+     * <p>
+     * The return value will be casted to boolean if non-boolean was returned.
+     * @since 5.0.0
+     */
+    public function offsetExists($offset)
+    {
+       return isset($this->arr[$offset]);
+    }
+
+    /**
+     * Offset to retrieve
+     * @link http://php.net/manual/en/arrayaccess.offsetget.php
+     * @param mixed $offset <p>
+     * The offset to retrieve.
+     * </p>
+     * @return mixed Can return all value types.
+     * @since 5.0.0
+     */
+    public function offsetGet($offset)
+    {
+        return $this->arr[$offset];
+    }
+
+    /**
+     * Offset to set
+     * @link http://php.net/manual/en/arrayaccess.offsetset.php
+     * @param mixed $offset <p>
+     * The offset to assign the value to.
+     * </p>
+     * @param mixed $value <p>
+     * The value to set.
+     * </p>
+     * @return void
+     * @since 5.0.0
+     */
+    public function offsetSet($offset, $value)
+    {
+       $this->arr[$offset] = $value;
+    }
+
+    /**
+     * Offset to unset
+     * @link http://php.net/manual/en/arrayaccess.offsetunset.php
+     * @param mixed $offset <p>
+     * The offset to unset.
+     * </p>
+     * @return void
+     * @since 5.0.0
+     */
+    public function offsetUnset($offset)
+    {
+        unset($this->arr[$offset]);
+    }
+
+    /**
+     * String representation of object
+     * @link http://php.net/manual/en/serializable.serialize.php
+     * @return string the string representation of the object or null
+     * @since 5.1.0
+     */
+    public function serialize()
+    {
+        return serialize($this->arr);
+    }
+
+    /**
+     * Constructs the object
+     * @link http://php.net/manual/en/serializable.unserialize.php
+     * @param string $serialized <p>
+     * The string representation of the object.
+     * </p>
+     * @return void
+     * @since 5.1.0
+     */
+    public function unserialize($serialized)
+    {
+       $this->arr = unserialize($serialized);
     }
 }

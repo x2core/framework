@@ -23,20 +23,11 @@ class Dispatcher
      */
     private $listeners;
 
-    /**
-     * @desc stack to basic jobs
-     */
-//    private $stack;
 
     /*
      * @var mixed[]
      */
     private $bundle;
-
-    /**
-     * @var mixed[]|object
-     */
-    private $record;
 
     /**
      * @param $listener
@@ -61,6 +52,8 @@ class Dispatcher
     /**
      * @param $event
      * @param null $context
+     *
+     * @desc Dispatch an event to execute the listeners that were assigned
      */
     public function dispatch($event, $context = NULL){
         $className = get_class($event);
@@ -72,6 +65,7 @@ class Dispatcher
     /**
      * @param $event
      * @param $classNameListener
+     * @return $this
      * @throws InvalidListener
      */
     public function listen( $event, $classNameListener){
@@ -79,7 +73,26 @@ class Dispatcher
             $this->listeners[$event] = [];
         }
         $this->addListener($this->listeners[$event], $classNameListener);
+        return $this;
+    }
 
+    /**
+     * Register an event subscriber with the dispatcher.
+     *
+     * @param  object|string $subscriber
+     * @return $this
+     * @throws InvalidSubscriber
+     */
+    public function subscribe($subscriber)
+    {
+        if (is_string($subscriber) &&is_subclass_of($subscriber, SubscriberInterface::class) ) {
+            $subscriber = new $subscriber;
+        }elseif(!is_object($subscriber) || is_subclass_of($subscriber, SubscriberInterface::class)){
+            throw new InvalidSubscriber();
+        }
+
+        $subscriber->subscribe($this);
+        return $this;
     }
 
     /**
@@ -115,22 +128,6 @@ class Dispatcher
     }
 
     /**
-     * @return mixed[]|object
-     */
-    public function getRecord()
-    {
-        return $this->record;
-    }
-
-    /**
-     * @param mixed[]|object $record
-     */
-    public function setRecord($record)
-    {
-        $this->record = $record;
-    }
-
-    /**
      * @return mixed
      */
     public function getBundle()
@@ -147,6 +144,17 @@ class Dispatcher
     }
 
     /**
+     * @param $event
+     *
+     * @desc Remove a event of listeners record to forget it
+     * @return void
+     */
+    public function forgetEvent($event){
+        if(isset($this->listeners[$event]))
+            unset($this->listeners[$event]);
+    }
+
+    /**
      * @param array $eventRecord
      * @param $listener
      */
@@ -154,6 +162,5 @@ class Dispatcher
     {
         self::isValidListener($listener);
         array_push($eventRecord, $listener);
-
     }
 }

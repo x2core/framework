@@ -22,6 +22,14 @@ class Hub extends Dispatcher
     private $hubRecord;
 
     /**
+     * @desc reset Hub record
+     */
+    public function forgetPushed()
+    {
+        $this->hubRecord = [];
+    }
+
+    /**
      * @param $event
      * @param $context
      * @throws \TypeError

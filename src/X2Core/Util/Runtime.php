@@ -1,6 +1,9 @@
 <?php
 
 namespace X2Core\Util;
+use BadMethodCallException;
+use Error;
+use Closure;
 
 /**
  * Class Runtime
@@ -62,7 +65,6 @@ class Runtime
      * @param null|string|array|callable
      * @param null|callable
      *
-     *
      * @desc to prepare mode to detect run tags
      * @return void
      */
@@ -86,6 +88,8 @@ class Runtime
     /**
      * @param $tag
      * @param $payload
+     *
+     * @desc emmit a tag to trigger handle with payload context
      * @return void
      */
     public static function trigger($tag, $payload){
@@ -101,7 +105,7 @@ class Runtime
 
     /**
      * @param callable $fn
-     * @desc reset buffer array of tags
+     * @desc execute and reset buffer array of tags
      * @void
      */
     public static function flush($fn){
@@ -117,6 +121,45 @@ class Runtime
      */
     public static function resetBufferTags(){
         self::$bufferTags = [];
+    }
+
+    /**
+     * Execute a method call to the given object.
+     *
+     * @param  object $object
+     * @param  string $method
+     * @param  array $parameters
+     * @param callable|null $fallback
+     * @return mixed
+     * @throws Error
+     */
+    public static function executeCall($object, $method, $parameters, callable $fallback = NULL)
+    {
+        try {
+            return $object->{$method}(...$parameters);
+        } catch (Error | BadMethodCallException $e) {
+            if($fallback === NULL){
+                throw $e;
+            }
+           return $fallback($e, $object, $method, $parameters);
+        }
+    }
+
+    /**
+     * @param Closure|callable|string $srcAction
+     * @param array|NULL $inject
+     * @return Closure
+     */
+    public static function action($srcAction, array $inject = NULL){
+        return ($srcAction instanceof Closure)? $srcAction : function() use($srcAction, $inject){
+            if (is_callable($srcAction)){
+                return $srcAction(...$srcAction);
+            }elseif(is_string($srcAction)){
+                // TODO implement in case if is string
+            }
+
+            throw new \RuntimeException('the action if not valid');
+        };
     }
 
     /**
