@@ -4,9 +4,9 @@ namespace X2Core\Foundation\Events;
 
 
 /**
- * Class AppError
+ * Class BootstrapEvent
  * @package X2Core\Foundation\Events
  */
-class AppFinished extends AbstractEvent
+class BootstrapEvent extends AbstractEvent
 {
 }

@@ -23,48 +23,63 @@ abstract class TestsBasicFramework
     /**
      * @param $value1
      * @param $value2
+     * @param null $msgTag
      * @internal param mixed $value
      */
-    public function assert($value1, $value2){
+    public function assert($value1, $value2, $msgTag = NULL){
         $this->addGoal();
         if ($value1 === $value2)
             $this->addScore();
+        else
+            $this->printMsg($msgTag);
     }
 
     /**
      * @param mixed $value
+     * @param null $msg
      */
-    public function assertToTrue($value){
+    public function assertToTrue($value, $msg = NULL){
         $this->addGoal();
         if($value === true)
             $this->addScore();
+        else
+            $this->printMsg($msg);
     }
 
     /**
      * @param mixed $value
+     * @param null $msg
      */
-    public function assertToFalse($value){
+    public function assertToFalse($value, $msg = NULL){
         $this->addGoal();
         if ($value === false)
             $this->addScore();
+        else
+            $this->printMsg($msg);
     }
 
     /**
      * @param mixed $value
+     * @param null $msg
      */
-    public function assertPositive($value){
+    public function assertPositive($value, $msg = NULL){
         $this->addGoal();
         if( ((bool) $value) === true)
             $this->addScore();
+        else
+            $this->printMsg($msg);
     }
 
     /**
      * @param mixed $value
+     * @param null $msg
      */
-    public function assertNegative($value){
+    public function assertNegative($value, $msg = NULL){
         $this->addGoal();
          if(((bool) $value) === false)
              $this->addScore();
+         else
+             $this->printMsg($msg);
     }
 
     /**
@@ -143,5 +158,13 @@ abstract class TestsBasicFramework
     private function finished()
     {
         echo "Result to " . static::class . ': ' . $this->status[0] . '/' .  $this->status[1] . "\n";
+    }
+
+    /**
+     * @param $msg
+     */
+    private function printMsg($msg)
+    {
+        echo ("Assert with tag: '{$msg}' is failed\n");
     }
 }

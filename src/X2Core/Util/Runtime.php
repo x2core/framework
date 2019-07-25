@@ -153,11 +153,16 @@ class Runtime
     public static function action($srcAction, array $inject = NULL){
         return ($srcAction instanceof Closure)? $srcAction : function() use($srcAction, $inject){
             if (is_callable($srcAction)){
-                return $srcAction(...$srcAction);
+                return $srcAction(...$inject);
             }elseif(is_string($srcAction)){
-                // TODO implement in case if is string
+                $chunk = explode('@', $srcAction);
+                $instance =  new $chunk[0];
+                if(isset($chunk[1])){
+                    $instance->{$chunk[1]}(...$inject);
+                }else{
+                    $inject(...$inject);
+                }
             }
-
             throw new \RuntimeException('the action if not valid');
         };
     }

@@ -25,8 +25,8 @@ class HubTest extends TestsBasicFramework
      * @desc add event listener
      */
     public function addListeners(){
-        $this->manager->listen(Event::class, function(stdClass $bundle, Event $event){
-            array_push($bundle->record,$event->data);
+        $this->manager->listen(Event::class, function( Event $event){
+            array_push($event->record,$event->data);
         });
     }
 
@@ -55,7 +55,7 @@ class HubTest extends TestsBasicFramework
 
         // the stack is inverse to queue then the last input is first that output
         // because value2 is in index -> 0
-        $this->assert($value2, $this->manager->getBundle()->record[0]);
-        $this->assert($value1, $this->manager->getBundle()->record[1]);
+        $this->assert($value2, $event2->data);
+        $this->assert($value1, $event1->data);
     }
 }

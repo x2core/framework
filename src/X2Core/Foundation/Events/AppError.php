@@ -9,13 +9,8 @@ use X2Core\Application;
  * Class AppError
  * @package X2Core\Foundation\Events
  */
-class AppError
+class AppError extends AbstractEvent
 {
-    /**
-     * @var Application
-     */
-    private $app;
-
     /**
      * @var int
      */
@@ -23,37 +18,20 @@ class AppError
 
     /**
      * AppError constructor.
-     * @param Application $app
+     * @param Application $application
      * @param $code
      */
-    public function __construct(Application $app, $code)
+    public function __construct(Application $application, $code)
     {
-        $this->app = $app;
+        parent::__construct($application);
         $this->code = $code;
     }
 
     /**
-     * @return Application
-     */
-    public function getApp()
-    {
-        return $this->app;
-    }
-
-    /**
-     * @return mixed
+     * @return int
      */
     public function getCode()
     {
         return $this->code;
     }
-
-    /**
-     * @param mixed $code
-     */
-    public function setCode($code)
-    {
-        $this->code = $code;
-    }
-
 }

@@ -16,22 +16,30 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use X2Core\Foundation\Events\AppError;
+use X2Core\Foundation\Events\AppFinished;
 use X2Core\Foundation\Events\AppForceExit;
 use X2Core\Foundation\Events\BeforeSendHeaders;
+use X2Core\Foundation\Events\BootstrapEvent;
 use X2Core\Foundation\Events\HttpError;
 use X2Core\Foundation\Events\HttpNotFound;
+use X2Core\Foundation\Events\RouteMatchEvent;
+use X2Core\Foundation\Events\UnloadEvent;
+use X2Core\Foundation\Http\RequestEvent;
 use X2Core\Foundation\Services\Router;
 use X2Core\Foundation\Services\View;
+use X2Core\Types\RouteContext;
+use X2Core\Util\Runtime;
 use X2Core\Util\URL;
 
 /**
  * Class QuickApplication
  * @package X2Core
+ * @author Oliver Valiente <oliver021val@gmail.com>
  *
  * @desc This class is shortcut to use the all ability to need
  * to create a web app of simple way and quickly
  *
- * QuickApplication is a implementation centralized but base on evetns and system routes
+ * QuickApplication is a implementation centralized but base on events and system routes
  * that allow make flexible web app
  */
 class QuickApplication extends Application
@@ -87,18 +95,37 @@ class QuickApplication extends Application
      */
     public function __construct(array $config = NULL)
     {
+        // check and load configures
         if($config){
             $this->config('app', $config);
         }
+
+        // define few system vars
         $this->request =  Request::createFromGlobals();
         $this->session = $this->request->getSession();
         $this->response = new Response();
         $this->router = new Router;
+
+        // initialize log support
         if($this->config('app.log.enable')){
             $this->logger = new Logger('app.log.name',
                 $this->getHandlesLog());
         }
+
+        // create cache support
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
+
+        // define action binder to router
+        $this->bind(RequestEvent::class, [$this, 'routerMatcher']);
+        $this->bind(RouteMatchEvent::class, [$this, 'dispatchRoute']);
+
+        // concat events to AppDeploy Event to define app flow
+        $this->concat(AppDeploy::class, [
+            BootstrapEvent::class,
+            RequestEvent::class,
+            UnloadEvent::class,
+            AppFinished::class
+        ]);
     }
 
     public static function fromCache(){
@@ -156,12 +183,18 @@ class QuickApplication extends Application
         if($key === NULL){
             return $this->session->get($name, NULL);
         }else{
-            return $this->session->set($name, $key);
+             $this->session->set($name, $key);
         }
+        return $this;
     }
 
+    /**
+     * @param $name
+     * @return $this
+     */
     public function deleteSession($name){
         $this->session->remove($name);
+        return $this;
     }
 
     /**
@@ -478,12 +511,38 @@ class QuickApplication extends Application
     }
 
     /**
+     * @desc this to prepare app configures and dispatch an event of deployment
      * @return void
      */
     public function deploy()
     {
         $this->prepare();
         $this->dispatch(new AppDeploy($this));
+    }
+
+    /**
+     * @param callable $fn
+     *
+     * @desc this method is a shortcut to set handle error base on ErrorEvent
+     * @return void
+     */
+    public function handleErrors(callable  $fn){
+        Runtime::handleError($fn);
+    }
+
+    /**
+     * @param $event
+     * @param $context
+     *
+     * @desc handler to process a route
+     * @return void
+     */
+    public function dispatchRoute($event, RouteContext $context){
+        Runtime::action($context->getHandler(), [
+            $this->request,
+            $this->response,
+            $context
+        ])();
     }
 
     /**
@@ -535,7 +594,7 @@ class QuickApplication extends Application
     }
 
     /**
-     * @desc before send headers of response
+     * @desc dispatch an event before send headers of response
      * @return void
      */
     private function emmitHeaders()

@@ -7,6 +7,9 @@ use function explode;
 /**
  * Trait ConfigSupport
  * @package X2Core\Container
+ * @author Oliver Valiente <oliver021val@gmail.com>
+ *
+ * @desc provide support to quick manager config
  */
 trait ConfigSupport
 {

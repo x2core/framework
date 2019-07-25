@@ -31,4 +31,12 @@ class RequestEvent
     public static function current(){
         return Request::createFromGlobals();
     }
+
+    /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
 }

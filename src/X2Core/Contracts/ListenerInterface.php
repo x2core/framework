@@ -6,6 +6,12 @@ namespace X2Core\Contracts;
 interface ListenerInterface
 {
     /**
+     * ListenerInterface constructor.
+     * @param $event
+     */
+    public function __construct($event = NULL);
+
+    /**
      *
      * Return true if is possible execute an event for several aspect
      *
@@ -16,10 +22,10 @@ interface ListenerInterface
     /**
      *
      * Execute a action with data an event
-     * @param $bundle
      * @param $context
      * @return mixed
+     * @internal param $bundle
      */
-    public function exec( $bundle, $context);
+    public function exec( $context);
 
 }

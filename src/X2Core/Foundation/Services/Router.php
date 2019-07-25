@@ -5,6 +5,10 @@ namespace X2Core\Foundation\Services;
 
 use X2Core\Util\URL;
 
+/**
+ * Class Router
+ * @package X2Core\Foundation\Services
+ */
 class Router
 {
     /**
@@ -32,9 +36,11 @@ class Router
     }
 
     /**
-     * @param $method
-     * @param $url
-     * @param $process
+     * @param string $method
+     * @param string $url
+     * @param callable $process
+     *
+     * @desc exec callable process for every route that match with request params
      * @return bool
      */
     public function match($method, $url, $process){
@@ -47,6 +53,46 @@ class Router
             }
         }
         return count($result) > 0;
+    }
+
+    /**
+     * @param string $method
+     * @param string $url
+     *
+     * @desc retrieve all matches routes
+     * @return bool|array
+     */
+    public function getMatches($method, $url){
+        $result = [];
+        $i = 0;
+        foreach ($this->record[$method] as $item){
+            if($data = URL::match($item[0], $item[1], $url)){
+                $result[$i] = [];
+                $result[$i]['handle'] = $item[2];
+                $result[$i]['parameter'] = $item[0] !== URL::MATCH_STATIC ? $data : NULL;
+                $i++;
+            }
+        }
+        return $i > 0 ? $result : false;
+    }
+
+    /**
+     * @param string $method
+     * @param string $url
+     *
+     * @desc this method is a generator to iterate for matches routes
+     * @return bool|array
+     */
+    public function fetch($method, $url){
+        $result = [];
+        foreach ($this->record[$method] as $item){
+            if($data = URL::match($item[0], $item[1], $url)){
+                $result['handle'] = $item[2];
+                $result['parameter'] = $item[0] !== URL::MATCH_STATIC ? $data : NULL;
+                yield $result;
+            }
+        }
+        yield NULL;
     }
 
     /**

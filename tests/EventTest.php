@@ -3,7 +3,6 @@
 use Test\Event;
 use X2Core\Contracts\ListenerInterface;
 use X2Core\Dispatcher;
-use X2Core\Types\Bundle;
 
 class EventTest extends TestsBasicFramework
 {
@@ -18,7 +17,6 @@ class EventTest extends TestsBasicFramework
      */
     public function prepareTest(){
         $this->manager = new Dispatcher();
-        $this->manager->setBundle(new Bundle());
     }
 
     /**
@@ -29,22 +27,33 @@ class EventTest extends TestsBasicFramework
         $this->manager->listen(Event::class, Test\Listener::class);
 
         // for Closure or anonymous function
-        $this->manager->listen(Event::class, function(Bundle $bundle){
-            $bundle->data2 = EventTest::elmTest;
+        $this->manager->listen(Event::class, function(Event $event){
+            $event->data2 = EventTest::elmTest;
         });
 
         // for anonymous class or any instance of an object to implements
         // the interface
         $this->manager->listen(Event::class, new class implements ListenerInterface {
 
+            private $event;
+
             public function isValid()
             {
                 return true;
             }
 
-            public function exec($bundle, $context)
+            public function exec($context)
             {
-                $bundle->data3 = EventTest::elmTest;
+               $context->sample = EventTest::elmTest;
+            }
+
+            /**
+             * ListenerInterface constructor.
+             * @param $event
+             */
+            public function __construct($event = NULL)
+            {
+                $this->event = new stdClass();
             }
         });
     }
@@ -64,15 +73,15 @@ class EventTest extends TestsBasicFramework
         $event = new Event($value);
 
         // fire
-        $this->manager->dispatch($event);
+        $this->manager->dispatch($event, $context = new stdClass);
 
         // this assert is correct if the first event is dispatched
-        $this->assert($value, $this->manager->getBundle()->testEvent);
+        $this->assert($value, $event->testEvent, 'std listener');
 
         // this second is correct if Closure (anonymous function) is dispatched
-        $this->assert(EventTest::elmTest, $this->manager->getBundle()->data2);
+        $this->assert(EventTest::elmTest, $event->data2, 'by closure');
 
-        // this second is correct if anonymous class is dispatched
-        $this->assert(EventTest::elmTest, $this->manager->getBundle()->data3);
+        // this second is correct if anonymous class is dispatched and if context is passed
+        $this->assert(EventTest::elmTest, $context->sample, 'by anonymous listener');
     }
 }

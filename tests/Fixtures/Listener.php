@@ -16,7 +16,7 @@ class Listener implements ListenerInterface
      * Listener constructor.
      * @param object $event
      */
-    public function __construct($event)
+    public function __construct($event = NULL)
     {
         $this->event = $event;
     }
@@ -35,11 +35,11 @@ class Listener implements ListenerInterface
     /**
      *
      * Execute a action with data an event
-     * @param array $bundle
+     * @param $context
      * @return mixed|void
      */
-    public function exec($bundle, $context)
+    public function exec($context)
     {
-       $bundle->testEvent = $this->event->data;
+       $this->event->testEvent = $this->event->data;
     }
 }
