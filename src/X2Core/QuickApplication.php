@@ -49,16 +49,22 @@ class QuickApplication extends Application
 {
     /**
      * @var Cache
+     *
+     * @desc this is cache container and manager drive to work in in/out cache data
      */
     private $cache;
 
     /**
      * @var Session
+     *
+     * @desc this is a manager Session of Request System
      */
     private $session;
 
     /**
      * @var Router
+     *
+     * Router manager service to match request with avaliable routes
      */
     private $router;
 
@@ -74,6 +80,9 @@ class QuickApplication extends Application
 
     /**
      * @var Connection
+     *
+     * @desc Connection manager support to use your database
+     *
      */
     private $database;
 
@@ -91,6 +100,9 @@ class QuickApplication extends Application
 
     /**
      * @var Closure[] services
+     *
+     * @desc this var is a container of services that can extend
+     * your app with other libraries
      */
     private $services;
 
@@ -112,6 +124,7 @@ class QuickApplication extends Application
         $this->router = new Router;
 
         // initialize log support
+        // the config avaliable should has value to configure the handler logger
         if($this->config('app.log.enable')){
             $this->logger = new Logger('app.log.name',
                 $this->getHandlesLog());
@@ -120,14 +133,16 @@ class QuickApplication extends Application
         // create cache support
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
 
-        // define action binder to router
+        // define action binder for default to important events
+        // that this app emmited to execute 
         $this->bind(AppRequestEvent::class, $this);
         $this->bind(RouteMatchEvent::class, $this);
         $this->bind(NotMatchEvent::class, $this);
         $this->bind(HttpNotFound::class, $this);
         $this->bind(HttpError::class, $this);
 
-        // concat events to AppDeploy Event to define app flow
+        // concatenate events to AppDeploy Event to define app flow
+        // with to call deply method the AppDeploy is dispatched
         $this->concat(AppDeploy::class, [
             BootstrapEvent::class,
             AppRequestEvent::class,
@@ -140,7 +155,7 @@ class QuickApplication extends Application
      * @param object $event
      * @param mixed $context
      *
-     *
+     * @return void
      */
     public function onInteract($event, $context){
         switch (get_class($event)){
@@ -356,7 +371,7 @@ class QuickApplication extends Application
      *
      * @desc this function to add action all request
      */
-    public function pushMiddleware($handle){
+    public function middleware($handle){
         $this->middlewareCollect[] = $handle;
     }
 
