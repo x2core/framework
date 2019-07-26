@@ -163,6 +163,9 @@ class URL
                 return $rule === $src;
                 break;
             case 2:
+                if(is_string($rule)){
+                  $rule = $rule[0] === '/' ? array_slice(explode('/', $rule), 1) : explode('/', $rule);
+                }
                 return self::pathMatch($rule, $src);
                 break;
             case 3:

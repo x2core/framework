@@ -28,7 +28,9 @@ class Router
      * @param $handle
      */
     public function pushRoute($method, $matchType, $matchRoute, $handle){
-        $this->record[$method] = [
+        if(!isset($this->record[$method]))
+            $this->record[$method] = [];
+        $this->record[$method][] = [
             'type' => $matchType,
             'route' => $matchRoute,
             'handle' => $handle,
@@ -77,22 +79,22 @@ class Router
     }
 
     /**
-     * @param string $method
+     * @param string|array $method
      * @param string $url
-     *
+     * @return \Generator
      * @desc this method is a generator to iterate for matches routes
-     * @return bool|array
      */
     public function fetch($method, $url){
         $result = [];
-        foreach ($this->record[$method] as $item){
-            if($data = URL::match($item[0], $item[1], $url)){
-                $result['handle'] = $item[2];
-                $result['parameter'] = $item[0] !== URL::MATCH_STATIC ? $data : NULL;
+        foreach (is_array($method) ? $this->mergeMethods($method) : $this->record[$method] as $item){
+            if($data = URL::match($item['type'], $item['route'], $url)){
+                $result['handle'] = $item['handle'];
+                $result['parameter'] = $item['type'] !== URL::MATCH_STATIC ? $data : NULL;
+                $result['method'] = $item['type'];
+                $result['url'] = $url;
                 yield $result;
             }
         }
-        yield NULL;
     }
 
     /**
@@ -125,5 +127,21 @@ class Router
     public function setLimitHandles($limitHandles)
     {
         $this->limitHandles = $limitHandles;
+    }
+
+    /**
+     * @param $method
+     * @return array
+     */
+    private function mergeMethods($method)
+    {
+        $result = [];
+        foreach ($method as $item){
+            if(!isset($this->record[$item])){
+                continue;
+            }
+           $result = array_merge($result,$this->record[$item]);
+        }
+        return $result;
     }
 }

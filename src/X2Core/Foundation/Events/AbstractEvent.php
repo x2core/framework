@@ -1,9 +1,8 @@
 <?php
 
 namespace X2Core\Foundation\Events;
+use X2Core\QuickApplication;
 
-
-use X2Core\Application;
 
 /**
  * Class AbstractEvent
@@ -20,7 +19,7 @@ abstract class AbstractEvent
      * BootstrapEvent constructor.
      * @param Application $application
      */
-    public function __construct(Application $application)
+    public function __construct(QuickApplication $application)
     {
         $this->application = $application;
     }
@@ -28,7 +27,7 @@ abstract class AbstractEvent
     /**
      * @return Application
      */
-    public function getApplication(): Application
+    public function getApplication()
     {
         return $this->application;
     }

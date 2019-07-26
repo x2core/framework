@@ -2,12 +2,14 @@
 
 namespace X2Core;
 
+use Closure;
 use Monolog\Logger;
 use Doctrine\DBAL\Connection;
 use Doctrine\Common\Cache\Cache;
 use Monolog\Handler\HandlerInterface;
 use Foundation\Database\ActiveRecord;
 use X2Core\Contracts\ActiveRecordInterface;
+use X2Core\Exceptions\IntegrityException;
 use X2Core\Foundation\Database\Connector\DBAL;
 use X2Core\Foundation\Events\AppDeploy;
 use X2Core\Exceptions\RuntimeException;
@@ -18,13 +20,14 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use X2Core\Foundation\Events\AppError;
 use X2Core\Foundation\Events\AppFinished;
 use X2Core\Foundation\Events\AppForceExit;
+use X2Core\Foundation\Events\AppRequestEvent;
 use X2Core\Foundation\Events\BeforeSendHeaders;
 use X2Core\Foundation\Events\BootstrapEvent;
 use X2Core\Foundation\Events\HttpError;
 use X2Core\Foundation\Events\HttpNotFound;
+use X2Core\Foundation\Events\NotMatchEvent;
 use X2Core\Foundation\Events\RouteMatchEvent;
 use X2Core\Foundation\Events\UnloadEvent;
-use X2Core\Foundation\Http\RequestEvent;
 use X2Core\Foundation\Services\Router;
 use X2Core\Foundation\Services\View;
 use X2Core\Types\RouteContext;
@@ -39,7 +42,7 @@ use X2Core\Util\URL;
  * @desc This class is shortcut to use the all ability to need
  * to create a web app of simple way and quickly
  *
- * QuickApplication is a implementation centralized but base on events and system routes
+ * QuickApplication is a implementation centralized but base on events and routes system
  * that allow make flexible web app
  */
 class QuickApplication extends Application
@@ -80,12 +83,14 @@ class QuickApplication extends Application
     private $logger;
 
     /**
-     * @var callable[][]
+     * @var callable[]
+     *
+     * @desc This var content is collection of func to execute before route handle
      */
     private $middlewareCollect = [];
 
     /**
-     * @var mixed[] services
+     * @var Closure[] services
      */
     private $services;
 
@@ -116,16 +121,58 @@ class QuickApplication extends Application
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
 
         // define action binder to router
-        $this->bind(RequestEvent::class, [$this, 'routerMatcher']);
-        $this->bind(RouteMatchEvent::class, [$this, 'dispatchRoute']);
+        $this->bind(AppRequestEvent::class, $this);
+        $this->bind(RouteMatchEvent::class, $this);
+        $this->bind(NotMatchEvent::class, $this);
+        $this->bind(HttpNotFound::class, $this);
+        $this->bind(HttpError::class, $this);
 
         // concat events to AppDeploy Event to define app flow
         $this->concat(AppDeploy::class, [
             BootstrapEvent::class,
-            RequestEvent::class,
+            AppRequestEvent::class,
             UnloadEvent::class,
             AppFinished::class
-        ]);
+        ], $this);
+    }
+
+    /**
+     * @param object $event
+     * @param mixed $context
+     *
+     *
+     */
+    public function onInteract($event, $context){
+        switch (get_class($event)){
+            case BootstrapEvent::class:
+                break;
+
+            case AppRequestEvent::class:
+                    $this->processRoutes();
+                break;
+
+            case RouteMatchEvent::class:
+                    $this->dispatchRoute($event, $context);
+                break;
+
+            case NotMatchEvent::class:
+                    $this->diagnosticRoutes();
+                break;
+
+            case UnloadEvent::class:
+                break;
+
+            case AppFinished::class:
+                break;
+
+            case HttpNotFound::class:
+                $this->response->setStatusCode(Response::HTTP_NOT_FOUND)->send();
+                break;
+
+            case HttpError::class:
+                $this->response->setStatusCode($event->getCode())->send();
+                break;
+        }
     }
 
     public static function fromCache(){
@@ -216,6 +263,18 @@ class QuickApplication extends Application
     }
 
     /**
+     * @return void
+     */
+    private function processRoutes(){
+        $route = $this->router->fetch(['*',$this->request->getMethod()], $this->request->getPathInfo());
+        if($route->valid()){
+            $this->dispatch(new RouteMatchEvent, new RouteContext($route->current(), $this, $this->router));
+        }else{
+            $this->dispatch(new NotMatchEvent, [$this, $this->router]);
+        }
+    }
+
+    /**
      * @param $url
      * @param $handle
      */
@@ -287,8 +346,8 @@ class QuickApplication extends Application
      */
     public function rest($url, $class){
         $app = $this;
-        $this->all($url, function(Request $request, Response $response) use ($class, $app){
-            (new $class($app))->{strtolower($request->getMethod())}($request, $response);
+        $this->all($url, function(Request $request, Response $response, RouteContext $context) use ($class, $app){
+            (new $class($app))->{strtolower($request->getMethod())}($request, $response, $context);
         });
     }
 
@@ -386,12 +445,13 @@ class QuickApplication extends Application
     /**
      *
      * @desc to send 404 not found code status
+     * @param string $message
      * @return void
      */
-    public function notFound(){
+    public function notFound($message = ''){
         $this->emmitHeaders();
-        $this->response->setStatusCode(Response::HTTP_NOT_FOUND)->send();
-        $this->dispatch(new HttpNotFound($this));
+        $this->response->setContent($message);
+        $this->dispatch(new HttpNotFound());
     }
 
     /**
@@ -402,7 +462,7 @@ class QuickApplication extends Application
     public function badRequest(){
         $this->emmitHeaders();
         $this->response->setStatusCode(Response::HTTP_BAD_REQUEST)->send();
-        $this->dispatch(new HttpError($this, Response::HTTP_BAD_REQUEST));
+        $this->dispatch(new HttpError(Response::HTTP_BAD_REQUEST));
     }
 
     /**
@@ -415,6 +475,11 @@ class QuickApplication extends Application
             case Logger::INFO:
                 $this->logger->info($msg);
                 break;
+
+            case Logger::NOTICE:
+                $this->logger->notice($msg);
+                break;
+
 
             case Logger::WARNING:
                 $this->logger->warn($msg);
@@ -456,10 +521,30 @@ class QuickApplication extends Application
 
     /**
      * @param $service
-     * @param callable $fn
+     * @param Closure $fn
+     * @return $this
+     * @throws RuntimeException
      */
-    public function service($service, callable $fn){
+    public function service($service, Closure $fn){
+        if(!($fn instanceof Closure)){
+            throw new RuntimeException('Invalided Service Source');
+        }
+        $this->services[$service] = $fn;
+        return $this;
+    }
 
+    /**
+     * @param $name
+     * @param $arguments
+     *
+     * @desc this magic method is a helper to execute a service that has been created
+     */
+    public function __call($name, $arguments)
+    {
+        if(!isset($this->services[$name])){
+           throw new \BadMethodCallException;
+        }
+        $this->services[$name]->call($this, ...$arguments);
     }
 
     /**
@@ -516,7 +601,6 @@ class QuickApplication extends Application
      */
     public function deploy()
     {
-        $this->prepare();
         $this->dispatch(new AppDeploy($this));
     }
 
@@ -538,11 +622,13 @@ class QuickApplication extends Application
      * @return void
      */
     public function dispatchRoute($event, RouteContext $context){
-        Runtime::action($context->getHandler(), [
+        Runtime::action(
+            $context->getHandler(), [
             $this->request,
             $this->response,
             $context
-        ])();
+        ]
+        )();
     }
 
     /**
@@ -570,25 +656,17 @@ class QuickApplication extends Application
     }
 
     /**
-     * @desc to prepare app system
-     * @return void
-     */
-    private function prepare()
-    {
-    }
-
-    /**
      * @return array
      * @throws IntegrityException
      */
     private function getHandlesLog()
     {
         $handles = [];
-        foreach ( $this->config('app.log.handles') as $key => $param){
-            if(is_subclass_of($key, HandlerInterface::class)){
+        foreach ( $this->config('app.log.handles') as  $params){
+            if(!is_subclass_of($params[0], HandlerInterface::class)){
                 throw new IntegrityException("the handler class is not implements Handle Interface");
             }
-            $handles[] = new $key(...$param);
+            $handles[] = new $params[0](...array_slice($params,1));
         }
         return $handles;
     }
@@ -615,5 +693,24 @@ class QuickApplication extends Application
             $config['user'],
             $config['pass'],
             $config['name']);
+    }
+
+    /**
+     * @desc this method make a diagnostic about the problem of routes
+     * @return void
+     */
+    private function diagnosticRoutes()
+    {
+        $routes = $this->router->fetch(
+            [
+                '*','GET','POST','PUT','PATCH','DELETE','HEAD'
+            ],
+            $this->request->getPathInfo()
+        );
+        if($routes->valid()){
+            $this->dispatch(new HttpError(Response::HTTP_METHOD_NOT_ALLOWED));
+        }else{
+            $this->dispatch(new HttpNotFound());
+        }
     }
 }

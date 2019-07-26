@@ -24,7 +24,7 @@ trait ReadOnlyProperties
      */
     public function __get($name)
     {
-        if(!property_exists($this, $name)){
+        if(!property_exists($this, '_' . $name)){
             throw new RuntimeException('A class that use ReadOnlyProperties trait not accepts dynamic fields');
         }
         return $this->{'_' . $name};

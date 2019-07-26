@@ -13,6 +13,11 @@ class EventTest extends TestsBasicFramework
     private $manager;
 
     /**
+     * @var int
+     */
+    private $elm;
+
+    /**
      *@desc create instance
      */
     public function prepareTest(){
@@ -44,7 +49,9 @@ class EventTest extends TestsBasicFramework
 
             public function exec($context)
             {
-               $context->sample = EventTest::elmTest;
+                if(is_object($context)){
+                    $context->sample = EventTest::elmTest;
+                }
             }
 
             /**
@@ -56,6 +63,10 @@ class EventTest extends TestsBasicFramework
                 $this->event = new stdClass();
             }
         });
+    }
+
+    public function onTestBinder($event, $context){
+        $this->elm = $context;
     }
 
     /**
@@ -83,5 +94,15 @@ class EventTest extends TestsBasicFramework
 
         // this second is correct if anonymous class is dispatched and if context is passed
         $this->assert(EventTest::elmTest, $context->sample, 'by anonymous listener');
+
+
+        //test bind functions
+
+        $this->manager->bind(Event::class, [$this, 'onTestBinder']);
+
+        $this->manager->dispatch($event, 2);
+
+        $this->assert(2, $this->elm);
+
     }
 }

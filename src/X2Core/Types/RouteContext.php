@@ -10,14 +10,18 @@ use X2Core\Exceptions\RuntimeException;
 use X2Core\Foundation\Events\AppFinished;
 use X2Core\Foundation\Events\RouteMatchEvent;
 use X2Core\Foundation\Services\Router;
+use X2Core\QuickApplication;
 use X2Core\Util\Arr;
 
 
 /**
  * Class RouteContext
  * @package X2Core\Types
+ *
+ * @property QuickApplication $app
+ *
  */
-class RouteContext implements HandleRoute, EmitterInterface
+class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
 {
     use ReadonlyArray, ReadOnlyProperties;
 
@@ -52,7 +56,7 @@ class RouteContext implements HandleRoute, EmitterInterface
     private $router;
 
     /**
-     * @var Application
+     * @var QuickApplication
      */
     private $_app;
 
@@ -74,11 +78,11 @@ class RouteContext implements HandleRoute, EmitterInterface
 
     /**
      * RouteContext constructor.
-     * @param $route
-     * @param Application $app
+     * @param array $route
+     * @param Application|QuickApplication $app
      * @param Router $router
      */
-    public function __construct(array $route, Application $app, Router $router)
+    public function __construct(array $route, QuickApplication $app, Router $router)
     {
         $this->arrName = "arguments";
         $this->initRoute($route);
@@ -270,7 +274,7 @@ class RouteContext implements HandleRoute, EmitterInterface
      */
     protected function initRoute($route): void
     {
-        if(Arr::contains($route, ['method', 'url', 'parameter']))
+        if(!Arr::contains($route, ['method', 'url', 'parameter']))
             throw new RuntimeException('The arr that describe the route is not valid');
         $this->method = $route['method'];
         $this->url = $route['url'];

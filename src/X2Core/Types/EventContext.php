@@ -1,6 +1,6 @@
 <?php
 
-namespace X2Core\Foundation\Events;
+namespace X2Core\Types;
 
 
 /**

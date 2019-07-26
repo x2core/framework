@@ -3,24 +3,29 @@
 namespace X2Core\Foundation\Events;
 
 
-use X2Core\Application;
 
-class HttpError extends AppError
+class HttpError
 {
     /**
-     * @var
+     * @var int
      */
     private $code;
 
     /**
      * HttpError constructor.
-     * @param Application $application
-     * @param $code
+     * @param int $code
      */
-    public function __construct(Application $application, $code)
+    public function __construct ($code)
     {
-        parent::__construct($application);
         $this->code = $code;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCode()
+    {
+        return $this->code;
     }
 
 }

@@ -3,31 +3,15 @@
 namespace X2Core\Foundation\Events;
 
 
-use X2Core\Application;
 
-class HttpNotFound
+class HttpNotFound extends HttpError
 {
     /**
-     * @var Application
-     */
-    private $app;
-
-    /**
      * HttpNotFound constructor.
-     * @param Application $app
      */
-    public function __construct(Application $app)
+    public function __construct()
     {
-        $this->app = $app;
-        $app->dispatch(new HttpError($app, 404));
-    }
-
-    /**
-     * @return Application
-     */
-    public function getApp()
-    {
-        return $this->app;
+        parent::__construct(404);
     }
 
 }

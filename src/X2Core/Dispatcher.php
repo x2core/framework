@@ -4,8 +4,7 @@ namespace X2Core;
 use Closure;
 use X2Core\Contracts\ListenerInterface;
 use X2Core\Exceptions\InvalidListener;
-use X2Core\Foundation\Events\EventContext;
-use X2Core\Util\Runtime;
+use X2Core\Types\EventContext;
 
 /**
  * Class Dispatcher
@@ -43,20 +42,6 @@ class Dispatcher
     }
 
     /**
-     * @param $target
-     * @return int
-     */
-    private static function validateBinder($target)
-    {
-        $result = 0;
-         if(is_string($target))
-            $result = 1;
-        elseif (count($target) >= 2 && is_object($target[0]) && is_string($target[1]))
-            $result = 2;
-        return $result;
-    }
-
-    /**
      * Destruct to Dispatcher
      */
     public function __destruct()
@@ -70,11 +55,15 @@ class Dispatcher
      * @param null $context
      *
      * @desc Dispatch an event to execute the listeners that were assigned
-     * @return mixed[]
+     * @return mixed[]|bool
      */
     public function dispatch($event, $context = NULL){
         $className = get_class($event);
         $result = [];
+        if(!isset($this->listeners[$className])){
+            return false;
+        }
+
         foreach ($this->listeners[$className] as $listener){
             $result[] = $this->sendToListeners($event, $listener, $context);
         }
@@ -98,13 +87,14 @@ class Dispatcher
     /**
      * @param $event
      * @param array $events
+     * @param null $payload
      * @return $this
      */
-    public function concat($event, array $events){
+    public function concat($event, array $events, $payload = NULL){
         $dispatcher = $this;
-        $this->listen($event, function($prevEvent) use($events, $dispatcher){
+        $this->listen($event, function($prevEvent) use($payload, $events, $dispatcher){
             foreach ($events as $event){
-                $dispatcher->dispatch($event, new EventContext($prevEvent));
+                $dispatcher->dispatch(new $event($payload), new EventContext($prevEvent));
             }
         });
         return $this;
@@ -112,22 +102,16 @@ class Dispatcher
 
     /**
      * @param string $event
-     * @param mixed $target
+     * @param object $target
      *
      * @desc This method register a binder object in listeners to dispatch with an event
      * @return $this
      * @throws BinderException
      */
     public function bind($event, $target){
-        $type = Dispatcher::validateBinder($target);
-        if($type === 0){
-            throw new BinderException;
-        }
-        $this->listen($event, is_array($type === 1 ? function($bundle, $event) use($target){
-                return Runtime::action($target, [$bundle, $event])->call($this);
-        } : function($bundle, $event) use($target){
-               return Runtime::executeCall($target[0], $target[1], ... [$bundle, $event]);
-        }));
+        $this->listen($event, function($event, $context) use($target){
+            $target->onInteract($event, $context);
+        });
         return $this;
     }
 
