@@ -137,6 +137,25 @@ class Str
     }
 
     /**
+     * @param $source
+     * @param $matches
+     * @param bool $sensitives
+     * @return bool|string
+     */
+    public static function contains($source, $matches, $sensitives = true){
+        if(is_array($matches)){
+            foreach($matches as $match){
+                if(self::contains($source, $match, $sensitives)){
+                    return true;
+                }
+            }
+            return false;
+        }else{
+            return $sensitives ? strstr($source, $matches) : stristr($source, $matches);
+        }
+    }
+
+    /**
      * @param $len
      * @param int $limit
      * @return string

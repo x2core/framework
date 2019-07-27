@@ -30,6 +30,10 @@ class IntroTest extends TestsBasicFramework
 
         $this->assertToFalse(isset($result_url['path']));
 
+        $dataMatch = URL::match(2, ['index','*'],'index/data/support/id');
+
+        $this->assert('id', $dataMatch["terms"][2], 'inclusive case of url match');
+
         $someVar = 0;
         $struct = new \X2Core\Util\Structure([
             'elm.sys' => function ($data) use(&$someVar){

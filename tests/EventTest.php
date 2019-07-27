@@ -95,14 +95,5 @@ class EventTest extends TestsBasicFramework
         // this second is correct if anonymous class is dispatched and if context is passed
         $this->assert(EventTest::elmTest, $context->sample, 'by anonymous listener');
 
-
-        //test bind functions
-
-        $this->manager->bind(Event::class, [$this, 'onTestBinder']);
-
-        $this->manager->dispatch($event, 2);
-
-        $this->assert(2, $this->elm);
-
     }
 }

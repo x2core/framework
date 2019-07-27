@@ -34,8 +34,12 @@ $config = [
                 FirePHPHandler::class
             ]
         ]
-    ]
+    ],
 
+    'session' => [
+        'enable' => true,
+        'options' => ['name' => 'testApp']
+    ]
 ];
 
 
@@ -56,10 +60,12 @@ $app->get('/', function(Request $request, Response $response, RouteContext $cont
 //});
 
 $app->get('/elm/$title', function(Request $request, Response $response, RouteContext $context){
-    $response->setContent("Elm -> " . $context['title'])->send();
+    $response->setContent("Elm -> " . $context['title'] . 'Session store: ' . $context->app->session('hello'))
+        ->send();
 });
 
-$app->put('/redirect', function(Request $request, Response $response, RouteContext $context){
+$app->get('/redirect', function(Request $request, Response $response, RouteContext $context){
+    $context->app->session('hello', 5**3);
     $context->app->redirect('/');
 });
 

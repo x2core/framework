@@ -3,12 +3,15 @@
 namespace X2Core;
 
 use Closure;
+use InvalidArgumentException;
 use Monolog\Logger;
 use Doctrine\DBAL\Connection;
 use Doctrine\Common\Cache\Cache;
 use Monolog\Handler\HandlerInterface;
 use Foundation\Database\ActiveRecord;
+use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 use X2Core\Contracts\ActiveRecordInterface;
+use X2Core\Exceptions\ConfigureException;
 use X2Core\Exceptions\IntegrityException;
 use X2Core\Foundation\Database\Connector\DBAL;
 use X2Core\Foundation\Events\AppDeploy;
@@ -31,6 +34,7 @@ use X2Core\Foundation\Events\UnloadEvent;
 use X2Core\Foundation\Services\Router;
 use X2Core\Foundation\Services\View;
 use X2Core\Types\RouteContext;
+use X2Core\Util\Arr;
 use X2Core\Util\Runtime;
 use X2Core\Util\URL;
 
@@ -48,66 +52,93 @@ use X2Core\Util\URL;
 class QuickApplication extends Application
 {
     /**
-     * @var Cache
+     * This is simple container to manager shared data of app
      *
-     * @desc this is cache container and manager drive to work in in/out cache data
+     * @var Cache
+     */
+    private $bundle = [];
+
+    /**
+     * This is cache container and manager drive to work in in/out cache data
+     *
+     * @var Cache
      */
     private $cache;
 
     /**
-     * @var Session
+     * This is a manager Session of Request System
      *
-     * @desc this is a manager Session of Request System
+     * @var Session
      */
     private $session;
 
     /**
-     * @var Router
-     *
      * Router manager service to match request with avaliable routes
+     *
+     * @var Router
      */
     private $router;
 
     /**
+     * Request container to manager and retrieves request info
+     *
      * @var Request
      */
     private $request;
 
     /**
+     * Response container to manager a response to request
+     *
      * @var Response
      */
     private $response;
 
     /**
+     * Connection manager support to use your database
+     *
      * @var Connection
-     *
-     * @desc Connection manager support to use your database
-     *
      */
     private $database;
 
     /**
+     * Logger service to help many tasks
+     *
      * @var Logger
      */
     private $logger;
 
     /**
-     * @var callable[]
+     * This var content is collection of func to execute before route handle
      *
-     * @desc This var content is collection of func to execute before route handle
+     * @var callable[]
      */
     private $middlewareCollect = [];
 
     /**
-     * @var Closure[] services
-     *
-     * @desc this var is a container of services that can extend
+     * This var is a container of services that can extend
      * your app with other libraries
+     *
+     * @var Closure[] services
      */
     private $services;
 
     /**
+     * Callable container to filter shared values
+     *
+     * @var callable[][]
+     */
+    private $filters;
+
+    /**
+     * Callable container to store of workflow of app
+     *
+     * @var callable[]
+     */
+    private $workflowContainer = [];
+
+    /**
      * QuickApplication constructor.
+     *
      * @param array|null $config
      */
     public function __construct(array $config = NULL)
@@ -119,22 +150,28 @@ class QuickApplication extends Application
 
         // define few system vars
         $this->request =  Request::createFromGlobals();
-        $this->session = $this->request->getSession();
         $this->response = new Response();
         $this->router = new Router;
 
         // initialize log support
-        // the config avaliable should has value to configure the handler logger
+        // the config available should has value to configure the handler logger
         if($this->config('app.log.enable')){
             $this->logger = new Logger('app.log.name',
                 $this->getHandlesLog());
+        }
+
+        // initialize session support for this request
+        // in config support should has preset to session
+        if($this->config('app.session.enable')){
+            $session = $this->sessionInit();
+            $this->request->setSession($this->session = $session);
         }
 
         // create cache support
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
 
         // define action binder for default to important events
-        // that this app emmited to execute 
+        // that this app emitted to execute
         $this->bind(AppRequestEvent::class, $this);
         $this->bind(RouteMatchEvent::class, $this);
         $this->bind(NotMatchEvent::class, $this);
@@ -142,7 +179,7 @@ class QuickApplication extends Application
         $this->bind(HttpError::class, $this);
 
         // concatenate events to AppDeploy Event to define app flow
-        // with to call deply method the AppDeploy is dispatched
+        // with to call deploy method the AppDeploy is dispatched
         $this->concat(AppDeploy::class, [
             BootstrapEvent::class,
             AppRequestEvent::class,
@@ -152,6 +189,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * Through this method that execute several event binder
+     *
      * @param object $event
      * @param mixed $context
      *
@@ -190,10 +229,9 @@ class QuickApplication extends Application
         }
     }
 
-    public static function fromCache(){
-    }
-
     /**
+     * Check if exists a key in the cache data
+     *
      * @param $name
      * @return bool
      */
@@ -202,30 +240,26 @@ class QuickApplication extends Application
     }
 
     /**
+     * Cache helpers to getter or setter data in cache
+     *
      * @param $name
-     * @return bool
-     */
-    public function hasSession($name){
-        return $this->session->has($name);
-    }
-
-    /**
-     * @param $name
-     * @param null $key
+     * @param null|mixed $store
      * @param string $prefix
      * @return mixed
      */
-    public function cache($name, $key = NULL, $prefix = "std")
+    public function cache($name, $store = NULL, $prefix = "std")
     {
         $name = $prefix . '-' . $name;
-        if($key === NULL){
+        if($store === NULL){
             return $this->cache->fetch($name);
         }else{
-            return $this->cache->save($name, $key);
+            return $this->cache->save($name, $store);
         }
     }
 
     /**
+     * Delete data cache by key name
+     *
      * @param $name
      * @return bool
      */
@@ -234,18 +268,30 @@ class QuickApplication extends Application
     }
 
     /**
+     * Check if exists a key in the session data
+     *
      * @param $name
-     * @param null $key
+     * @return bool
+     */
+    public function hasSession($name){
+        return $this->session->has($name);
+    }
+
+    /**
+     * Session helpers to getter or setter data in session
+     *
+     * @param $name
+     * @param null|mixed $store
      * @param string $prefix
      * @return mixed
      */
-    public function session($name, $key = NULL, $prefix = "std")
+    public function session($name, $store = NULL, $prefix = "std")
     {
         $name = $prefix . '-' . $name;
-        if($key === NULL){
+        if($store === NULL){
             return $this->session->get($name, NULL);
         }else{
-             $this->session->set($name, $key);
+             $this->session->set($name, $store);
         }
         return $this;
     }
@@ -260,24 +306,26 @@ class QuickApplication extends Application
     }
 
     /**
-     * @param $method
-     * @param $url
-     * @param $handle
-     * @return void
-     *
-     * @desc This method to register http router that will run
+     * This method to register http router that will run
      * if request is matched with preset routes
      * The shortcut method is recommend to configure the router model
      *
+     * @param $method
+     * @param $url
+     * @param $handle
+     *
+     * @return void
      */
     public function route($method, $url, $handle)
     {
-        $this->router->pushRoute($method,(strstr($url,'$') ?
+        $this->router->pushRoute($method, (strstr($url,'$') ?
             URL::MATCH_ARRAY_PARAM : URL::MATCH_STATIC)
             , $url, $handle);
     }
 
     /**
+     * This method is designed to exec router system
+     *
      * @return void
      */
     private function processRoutes(){
@@ -290,6 +338,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * Set a handler to route for all http methods and url
+     *
      * @param $url
      * @param $handle
      */
@@ -298,6 +348,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * Set a handler to route with name of this method and url rule
+     *
      * @param $url
      * @param $handle
      */
@@ -306,73 +358,181 @@ class QuickApplication extends Application
     }
 
     /**
-     * @param $url
-     * @param $handle
+     * {@inheritdoc}
      */
     public function post($url, $handle){
         $this->route("POST", $url, $handle);
     }
 
     /**
-     * @param $url
-     * @param $handle
+     * {@inheritdoc}
      */
     public function put($url, $handle){
         $this->route("PUT", $url, $handle);
     }
 
     /**
-     * @param $url
-     * @param $handle
+     * {@inheritdoc}
      */
     public function patch($url, $handle){
         $this->route("PATCH", $url, $handle);
     }
 
     /**
-     * @param $url
-     * @param $handle
+     * {@inheritdoc}
      */
     public function delete($url, $handle){
         $this->route("DELETE", $url, $handle);
     }
 
     /**
-     * @param $url
-     * @param $handle
+     * {@inheritdoc}
      */
     public function head($url, $handle){
         $this->route("HEAD", $url, $handle);
     }
 
     /**
-     * @param $url
-     * @param $class
+     * Push or enter a filter to handle a shared data
+     *
+     * @param $name
+     * @param callable $fn
+     * @param bool $bubbles
+     * @return $this
      */
-//    public function controller($url, $class){
-//
-//    }
+    public function filter($name, callable $fn, $bubbles = false){
+        if(!isset($this->filters[$name])){
+            $this->filters[$name] = [];
+        }
+        $bubbles ? array_unshift($this->filters[$name], $fn) : $this->filters[$name][] = $fn;
+        return $this;
+    }
+
+    /**
+     * Check if exists shared data value
+     *
+     * @param $name
+     * @return bool
+     */
+    public function contains($name){
+        return isset($this->bundle[$name]);
+    }
+
+    /**
+     * Apply and get shared data value
+     *
+     * @param $name
+     * @param null|mixed $fallback
+     * @param bool $skipFilters
+     * @return $this
+     */
+    public function fetch($name, $fallback = NULL, $skipFilters = false){
+        if(!isset($this->bundle[$name])){
+            return $fallback;
+        }
+
+        $value = $this->bundle[$name][0];
+        $isReadOnly = $this->bundle[$name][1];
+
+        if(isset($this->filters[$name])){
+            foreach ($this->filters[$name] as $filter){
+                $result = $filter($value, $this);
+                if(!$isReadOnly){
+                    $value = $result;
+                }
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Init and set a workflow content and dependencies
+     *
+     * @param $name
+     * @param callable $workflow
+     * @param array $dependencies
+     * @return $this
+     */
+    public function setWorkflow($name, callable $workflow, array $dependencies = NULL){
+        if(!isset($this->workflowContainer[$name])){
+            $this->workflowContainer[$name] = [$workflow, $dependencies];
+        }
+        return $this;
+    }
+
+    /**
+     * Execute workflow state
+     *
+     * @param $name
+     * @return $this
+     */
+    public function workflow($name){
+        $wfs = $this->workflowContainer[$name];
+
+        if($wfs !== NULL){
+            if($wfs[1] !== NULL){
+                foreach ($wfs[1] as $workflow){
+                    $this->workflow($workflow);
+                }
+            }
+            $wfs[0]($this);
+            $this->workflowContainer[$name] = NULL;
+        }
+        return $this;
+    }
+
+    /**
+     * Publish a value in the shared data
+     *
+     * @param $name
+     * @param mixed $value
+     * @param bool $readonly
+     * @return $this
+     */
+    public function save($name, $value, $readonly = false){
+        $this->bundle[$name] = [$value, $readonly];
+        return $this;
+    }
 
     /**
      * @param $url
-     * @param $class
+     * @param array $options
+     * @throws ConfigureException
+     */
+    public function controllers($url, array $options){
+        if(!Arr::contains($options, ['class', 'method', 'match'])){
+            throw new ConfigureException('The requirements to set a controller is not enough');
+        }
+        $this->route('*',$url . '/$ctrl/$method/*',
+            function(Request $request, Response $response, RouteContext $context) use($options){
+        });
+    }
+
+    /**
+     * With url make rest routes base on method
      *
-     * @desc With url make rest routes base on method
+     * @param $url
+     * @param $class
+     * @return $this
      */
     public function rest($url, $class){
         $app = $this;
         $this->all($url, function(Request $request, Response $response, RouteContext $context) use ($class, $app){
             (new $class($app))->{strtolower($request->getMethod())}($request, $response, $context);
         });
+        return $this;
     }
 
     /**
-     * @param $handle
+     * This function to add action all request
      *
-     * @desc this function to add action all request
+     * @param $handle
+     * @return $this
      */
     public function middleware($handle){
         $this->middlewareCollect[] = $handle;
+        return $this;
     }
 
     /**
@@ -395,9 +555,10 @@ class QuickApplication extends Application
     }
 
     /**
-     * @param $name
      *
-     * @desc change db connection params
+     * Change db connection params
+     *
+     * @param $name
      */
     public function changeDBConnection($name){
         if($this->config('app.database.' . $name))
@@ -405,10 +566,11 @@ class QuickApplication extends Application
     }
 
     /**
-     * @param $path
-     * @param $data
      *
      * To render template base on twig view engine
+     *
+     * @param $path
+     * @param $data
      */
     public function view($path, $data){
         static $viewEngine;
@@ -438,6 +600,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * Make a redirection response
+     *
      * @param $url
      */
     public function redirect($url){
@@ -448,8 +612,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * To send no content code status
      *
-     * @desc to send no content code status
      * @return void
      */
     public function noContent(){
@@ -458,8 +622,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * To send 404 not found code status
      *
-     * @desc to send 404 not found code status
      * @param string $message
      * @return void
      */
@@ -470,8 +634,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * To send 400 bad request code status
      *
-     * @desc to send 404 not found code status
      * @return void
      */
     public function badRequest(){
@@ -479,13 +643,26 @@ class QuickApplication extends Application
         $this->response->setStatusCode(Response::HTTP_BAD_REQUEST)->send();
         $this->dispatch(new HttpError(Response::HTTP_BAD_REQUEST));
     }
+    /**
+     * To send 401 unauthorized code status
+     *
+     * @return void
+     */
+    public function unauthorized(){
+        $this->emmitHeaders();
+        $this->response->setStatusCode(Response::HTTP_UNAUTHORIZED)->send();
+        $this->dispatch(new HttpError(Response::HTTP_UNAUTHORIZED));
+    }
 
     /**
+     * Log action through logger service
+     *
      * @param $msg
      * @param $level
      * @throws RuntimeException
      */
     public function log($msg, $level = Logger::INFO){
+        // by $level emitted log
         switch ($level){
             case Logger::INFO:
                 $this->logger->info($msg);
@@ -513,7 +690,7 @@ class QuickApplication extends Application
                 break;
 
             default:
-                 throw new RuntimeException("The log level is not supported");
+                 throw new InvalidArgumentException("The log level is not supported in second argument");
                 break;
         }
     }
@@ -549,17 +726,18 @@ class QuickApplication extends Application
     }
 
     /**
+     * This magic method is a helper to execute a service that has been created
+     *
      * @param $name
      * @param $arguments
-     *
-     * @desc this magic method is a helper to execute a service that has been created
+     * @return mixed
      */
     public function __call($name, $arguments)
     {
         if(!isset($this->services[$name])){
            throw new \BadMethodCallException;
         }
-        $this->services[$name]->call($this, ...$arguments);
+        return $this->services[$name]->call($this, ...$arguments);
     }
 
     /**
@@ -611,7 +789,8 @@ class QuickApplication extends Application
     }
 
     /**
-     * @desc this to prepare app configures and dispatch an event of deployment
+     * This to prepare app configures and dispatch an event of deployment
+     *
      * @return void
      */
     public function deploy()
@@ -630,20 +809,21 @@ class QuickApplication extends Application
     }
 
     /**
+     * Handler to process a route
+     *
      * @param $event
      * @param $context
      *
-     * @desc handler to process a route
      * @return void
      */
     public function dispatchRoute($event, RouteContext $context){
-        Runtime::action(
-            $context->getHandler(), [
-            $this->request,
-            $this->response,
-            $context
-        ]
-        )();
+            Runtime::action(
+                $context->getHandler(), [
+                    $this->request,
+                    $this->response,
+                    $context
+                ]
+            )();
     }
 
     /**
@@ -671,6 +851,8 @@ class QuickApplication extends Application
     }
 
     /**
+     * Retrieves handles instances of logger
+     *
      * @return array
      * @throws IntegrityException
      */
@@ -687,7 +869,9 @@ class QuickApplication extends Application
     }
 
     /**
-     * @desc dispatch an event before send headers of response
+     *
+     * Dispatch an event before send headers of response
+     *
      * @return void
      */
     private function emmitHeaders()
@@ -696,6 +880,9 @@ class QuickApplication extends Application
     }
 
     /**
+     *
+     * Init a Connection to database with default options or parameter function
+     *
      * @param null $usage
      * @return void
      */
@@ -711,21 +898,43 @@ class QuickApplication extends Application
     }
 
     /**
-     * @desc this method make a diagnostic about the problem of routes
+     *
+     * This method make a diagnostic about the problem of routes
+     *
      * @return void
      */
     private function diagnosticRoutes()
     {
-        $routes = $this->router->fetch(
-            [
+        $routes = $this->router->fetch([
                 '*','GET','POST','PUT','PATCH','DELETE','HEAD'
-            ],
-            $this->request->getPathInfo()
+            ], $this->request->getPathInfo()
         );
         if($routes->valid()){
             $this->dispatch(new HttpError(Response::HTTP_METHOD_NOT_ALLOWED));
         }else{
             $this->dispatch(new HttpNotFound());
         }
+    }
+
+    /**
+     *
+     * Init Session handle with preset
+     *
+     * @return Session
+     * @throws \Exception
+     */
+    private function sessionInit()
+    {
+        $classHandle = $this->config('app.session.handle');
+        if(!$classHandle){
+            return new Session(new NativeSessionStorage($this->getConfigSafe('app.session.options', [])));
+        }
+
+        $sessionParams = $this->config('app.session.options');
+        if(!$sessionParams){
+            throw new \Exception('The session configure require params options');
+        }
+
+        return new $classHandle($this->getConfigSafe('app.session.options'));
     }
 }
