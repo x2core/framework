@@ -75,17 +75,12 @@ $app->get('/', function(Request $request, Response $response, RouteContext $cont
     $response->setContent('Hello World!!')->send();
 });
 
-//$app->get('/elm', function(Request $request, Response $response, RouteContext $context){
-//    $context->app->json(['elm' => 45]);
-//});
-
 $app->get('/elm/$title', function(Request $request, Response $response, RouteContext $context){
-    $response->setContent("Elm -> " . $context['title'] . 'Session store: ' . $context->app->session('hello'))
+    $response->setContent("Example " . $context['title'] )
         ->send();
 });
 
 $app->get('/redirect', function(Request $request, Response $response, RouteContext $context){
-    $context->app->session('hello', 5**3);
     $context->app->redirect('/');
 });
 
