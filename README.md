@@ -9,15 +9,15 @@ In addition to our aforementioned class, we will have a super varied set of util
 ## Starting 🚀
 
 To install this code library just use composer to include it in your project and start using it.
-``
+```
 composer require x2core / x2core
-``
+```
 PHP 7.1 or higher is required.
 
 ### Usage
 
 
-``php
+```php
 <?php
 
 use Monolog\Handler\FirePHPHandler;
@@ -90,4 +90,4 @@ $app->get('/redirect', function(Request $request, Response $response, RouteConte
 });
 
 $app->deploy();
-``
+```
