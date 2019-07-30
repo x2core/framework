@@ -89,7 +89,7 @@ class Router
         foreach (is_array($method) ? $this->mergeMethods($method) : $this->record[$method] as $item){
             if($data = URL::match($item['type'], $item['route'], $url)){
                 $result['handle'] = $item['handle'];
-                $result['parameter'] = $item['type'] !== URL::MATCH_STATIC ? $data : NULL;
+                $result['parameter'] = $item['type'] !== URL::MATCH_STATIC ? $data : [];
                 $result['method'] = $item['type'];
                 $result['url'] = $url;
                 yield $result;

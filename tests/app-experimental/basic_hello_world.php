@@ -7,7 +7,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use X2Core\Foundation\Events\BootstrapEvent;
 use X2Core\QuickApplication;
-use X2Core\Types\RouteContext;
 
 // define a basic constant to create a reference path
 define('BASEPATH', __DIR__ . DIRECTORY_SEPARATOR);
@@ -51,22 +50,22 @@ $app->listen(BootstrapEvent::class, function(BootstrapEvent $event){
     $app->log('The app is bootstrap ', Logger::NOTICE);
 });
 
-$app->get('/', function(Request $request, Response $response, RouteContext $context){
+$app->get('/', function(Request $request, Response $response){
     $response->setContent('Hello World!!')->send();
 });
 
-//$app->get('/elm', function(Request $request, Response $response, RouteContext $context){
-//    $context->app->json(['elm' => 45]);
-//});
+$app->get('/elm', function(QuickApplication $app, $query){
+   $app->json($query);
+});
 
-$app->get('/elm/$title', function(Request $request, Response $response, RouteContext $context){
-    $response->setContent("Elm -> " . $context['title'] . 'Session store: ' . $context->app->session('hello'))
+$app->get('/elm/$title', function(Response $response, QuickApplication $app, $title){
+    $response->setContent("Elm -> " . $title . ' Session store: ' . $app->session('hello'))
         ->send();
 });
 
-$app->get('/redirect', function(Request $request, Response $response, RouteContext $context){
-    $context->app->session('hello', 5**3);
-    $context->app->redirect('/');
+$app->get('/redirect', function(QuickApplication $application){
+    $application->session('hello', 'sys');
+    $application->redirect('/');
 });
 
 $app->deploy();

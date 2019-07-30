@@ -6,14 +6,15 @@ use X2Core\Types\IterableString;
 /**
  * Class Str
  * @package X2Core\Util
+ *
+ * Several utilities to work with strings
  */
 class Str
 {
     /**
+     * Parse a string to chunk to Camel Case Format
+     *
      * @param string $str
-     *
-     *
-     * @desc Parse a string to chunk to Camel Case Format
      * @return array
      */
     public static function camelCaseParse($str){
@@ -30,6 +31,8 @@ class Str
     }
 
     /**
+     * An array or camelCase string is converted a dashCase string
+     *
      * @param array|string $str
      * @return string
      */
@@ -39,6 +42,19 @@ class Str
     }
 
     /**
+     * An array or camelCase string is converted a slug string
+     *
+     * @param array|string $str
+     * @return string
+     */
+    public static function toSlugFormat($str)
+    {
+        return join('',(is_array($str)) ? $str : self::camelCaseParse($str));
+    }
+
+    /**
+     * Convert an array of strings in a string with camelCase format
+     *
      * @param array $str
      * @return string
      */
@@ -56,6 +72,8 @@ class Str
     }
 
     /**
+     * Check if a string terminate with a substring
+     *
      * @param $str
      * @param $chunk
      * @return bool
@@ -74,6 +92,8 @@ class Str
     }
 
     /**
+     * Check if a string terminate with a substring
+     *
      * @param $str
      * @param $chunk
      * @return bool
@@ -83,6 +103,8 @@ class Str
     }
 
     /**
+     * to Slice a string like a array
+     *
      * @param $str
      * @param $offset
      * @param null $length
@@ -91,7 +113,7 @@ class Str
     public static function slice($str, $offset, $length = NULL)
     {
         $result = "";
-        $lenStr = ($length !== NULL) ? $length+$offset : strlen($str);
+        $lenStr = ($length !== NULL) ? $length + $offset : strlen($str);
         for($i = $offset; $i < $lenStr; $i++){
             $result .= $str[$i];
         }
@@ -99,6 +121,8 @@ class Str
     }
 
     /**
+     * Get all substring that found inside of container rules
+     *
      * @param $str
      * @param $first
      * @param $end
@@ -137,6 +161,8 @@ class Str
     }
 
     /**
+     * Verify if a chunk string exists in a string
+     *
      * @param $source
      * @param $matches
      * @param bool $sensitives
@@ -156,6 +182,8 @@ class Str
     }
 
     /**
+     * Get random string through simple algorithm
+     *
      * @param $len
      * @param int $limit
      * @return string

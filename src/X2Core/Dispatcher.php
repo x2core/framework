@@ -10,6 +10,7 @@ use X2Core\Types\EventContext;
  * Class Dispatcher
  * @package X2Core
  * @author Oliver Valiente <oliver021val@gmail.com>
+ *
  * <p>
  * The manager provide centralized control listener and event to
  * handle flow, runtime, model data and support to different request to system.
@@ -24,13 +25,9 @@ class Dispatcher
      */
     private $listeners;
 
-
-    /*
-     * @var mixed[]
-     */
-    private $bundle;
-
     /**
+     * Simple validator to listeners
+     *
      * @param $listener
      * @throws InvalidListener
      */
@@ -51,10 +48,10 @@ class Dispatcher
     }
 
     /**
+     * Dispatch an event to execute the listeners that were assigned
+     *
      * @param $event
      * @param null $context
-     *
-     * @desc Dispatch an event to execute the listeners that were assigned
      * @return mixed[]|bool
      */
     public function dispatch($event, $context = NULL){
@@ -67,10 +64,13 @@ class Dispatcher
         foreach ($this->listeners[$className] as $listener){
             $result[] = $this->sendToListeners($event, $listener, $context);
         }
+
         return $result;
     }
 
     /**
+     * Push a listen handler to an event
+     *
      * @param $event
      * @param $classNameListener
      * @return $this
@@ -80,11 +80,15 @@ class Dispatcher
         if (!isset($this->listeners[$event])){
             $this->listeners[$event] = [];
         }
+
         $this->addListener($this->listeners[$event], $classNameListener);
+
         return $this;
     }
 
     /**
+     * When an event is dispatched then the concatenated events are dispatch
+     *
      * @param $event
      * @param array $events
      * @param null $payload
@@ -97,14 +101,15 @@ class Dispatcher
                 $dispatcher->dispatch(new $event($payload), new EventContext($prevEvent));
             }
         });
+
         return $this;
     }
 
     /**
+     * This method register a binder object in listeners to dispatch with an event
+     *
      * @param string $event
      * @param object $target
-     *
-     * @desc This method register a binder object in listeners to dispatch with an event
      * @return $this
      * @throws BinderException
      */
@@ -112,6 +117,7 @@ class Dispatcher
         $this->listen($event, function($event, $context) use($target){
             $target->onInteract($event, $context);
         });
+
         return $this;
     }
 
@@ -135,9 +141,9 @@ class Dispatcher
     }
 
     /**
-     * @param $class
+     * Check if current dispatcher has a listener
      *
-     * @desc Check if current dispatcher has a listener
+     * @param $class
      * @return bool
      */
     public function hasListeners($class)
@@ -146,47 +152,9 @@ class Dispatcher
     }
 
     /**
-     * @param $event
-     * @param $listener
-     * @param $context
-     * @return bool
-     */
-    private function sendToListeners($event, $listener, $context)
-    {
-        /* @var ListenerInterface $listener */
-        if(!is_object($listener)){
-            $listener = new $listener($event);
-        }
-        if($listener instanceof Closure) {
-            $result = $listener($event, $context);
-        }elseif ($listener->isValid()){
-            $result = $listener->exec($context);
-        }else{
-            $result = NULL;
-        }
-        return $result;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getBundle()
-    {
-        return $this->bundle;
-    }
-
-    /**
-     * @param mixed $bundle
-     */
-    public function setBundle($bundle)
-    {
-        $this->bundle = $bundle;
-    }
-
-    /**
-     * @param $event
+     * Remove a event of listeners record to forget it
      *
-     * @desc Remove a event of listeners record to forget it
+     * @param $event
      * @return void
      */
     public function forgetEvent($event){
@@ -202,5 +170,35 @@ class Dispatcher
     {
         self::isValidListener($listener);
         array_push($eventRecord, $listener);
+    }
+
+    /**
+     * @param $event
+     * @param $listener
+     * @param $context
+     * @return bool
+     */
+    private function sendToListeners($event, $listener, $context)
+    {
+        /* @var ListenerInterface $listener */
+        if(!is_object($listener)){
+            $listener = new $listener($event);
+        }
+
+        if($listener instanceof Closure) {
+            // if is a listener is a Closure then is invoked
+            $result = $listener($event, $context);
+        }elseif ($listener->isValid()){
+            // if is a class should be an implementation of ListenerInterface
+            // then exec metod is invoked
+            $result = $listener->exec($context);
+        }else{
+
+            // the validateListener method should validate a type of listener but if
+            // by a unknown cause is passed a listener invalid, simply is not executed
+            $result = NULL;
+        }
+
+        return $result;
     }
 }

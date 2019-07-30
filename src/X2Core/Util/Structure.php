@@ -52,19 +52,19 @@ class Structure
        }
     }
 
-    /**
-     * @param array $structure
-     * @param bool $strict
-     *
-     * @return bool
-     */
-    public function validateSchema(array $structure, $strict){
-        do{
-            $current = current($structure);
-            $key = key($structure);
-        }while(next($structure));
-        return true;
-    }
+//    /**
+//     * @param array $structure
+//     * @param bool $strict
+//     *
+//     * @return bool
+//     */
+//    public function validateSchema(array $structure, $strict){
+//        do{
+//            $current = current($structure);
+//            $key = key($structure);
+//        }while(next($structure));
+//        return true;
+//    }
 
     /**
      * @return mixed

@@ -27,6 +27,7 @@ class ArrayValidator
 
     /**
      * Validator constructor.
+     *
      * @param array|null $data
      */
     public function __construct(array $data = null)
@@ -35,6 +36,8 @@ class ArrayValidator
     }
 
     /**
+     * // TODO
+     *
      * @param $key
      * @return Descriptor
      */

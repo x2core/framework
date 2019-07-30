@@ -28,7 +28,7 @@ class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
     /**
      * @var array
      */
-    private $arguments;
+    private $arguments = [];
 
     /**
      * @var string
@@ -60,7 +60,6 @@ class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
      */
     private $_app;
 
-
     /**
      * @var RouteMatchEvent
      */
@@ -77,6 +76,19 @@ class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
     private $handler;
 
     /**
+     * Factory help to create RouteContext instance
+     *
+     * @param $route
+     * @param QuickApplication $app
+     * @param Router $router
+     * @static
+     * @return RouteContext
+     */
+    public static function factory($route, QuickApplication $app, Router $router){
+        return new RouteContext($route, $app, $router);
+    }
+
+    /**
      * RouteContext constructor.
      * @param array $route
      * @param Application|QuickApplication $app
@@ -90,7 +102,6 @@ class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
         $this->_app = $app;
         $this->readOnly('app');
     }
-
 
     /**
      * @desc execute the next route handle
@@ -272,7 +283,7 @@ class RouteContext implements HandleRoute, EmitterInterface, \ArrayAccess
      * @param $route
      * @throws RuntimeException
      */
-    protected function initRoute($route): void
+    protected function initRoute($route)
     {
         if(!Arr::contains($route, ['method', 'url', 'parameter']))
             throw new RuntimeException('The arr that describe the route is not valid');

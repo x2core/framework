@@ -3,9 +3,10 @@
 namespace X2Core\Contracts;
 
 
-interface ContainerInterface extends \ArrayAccess
+interface ContainerInterface
 {
-    public function singleton($name, $closure);
+    public function differed($name, \Closure $closure);
+    public function service($name,  $service);
     public function install(ProviderInterface $provider);
     public function uninstall(ProviderInterface $provider);
     public function make($name, array $params);

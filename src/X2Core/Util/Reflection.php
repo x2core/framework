@@ -11,15 +11,19 @@ use TypeError;
 /**
  * Class Reflection
  * @package X2Core\Util
+ *
+ * Utilities to make a reflection about class or function
  */
 class Reflection
 {
     /**
+     * Return instance of ReflectionClass
+     *
      * @param $class
      * @return ReflectionClass
      * @throws ReflectionException
      */
-    static function classAnalyzer($class){
+    public static function classAnalyzer($class){
        return new ReflectionClass($class);
     }
 
@@ -28,7 +32,7 @@ class Reflection
      * @return array
      * @throws ReflectionException
      */
-    static function classMethods($class){
+    public static function classMethods($class){
         return (new ReflectionClass($class))->getMethods();
     }
 
@@ -37,24 +41,26 @@ class Reflection
      * @return array
      * @throws ReflectionException
      */
-    static function classProperties($class){
+    public static function classProperties($class){
         return (new ReflectionClass($class))->getProperties();
     }
 
     /**
+     * Get basic info of all parameter of method, callable, function or Closure
+     *
      * @param $target
      * @return mixed[]
      * @throws \Exception
      * @throws TypeError
      */
-    static function scanParameter($target){
-        if($target instanceof Closure){
+    public static function scanParameter($target){
+        if($target instanceof Closure || is_callable($target)){
             $reflection = new ReflectionFunction($target);
         }elseif (is_object($target) && method_exists($target,'__invoke')){
             $reflection = new ReflectionClass($target);
             $reflection = $reflection->getMethod('__invoke');
         }elseif(is_string($target)){
-            $elms = explode(':',$target);
+            $elms = explode('@',$target);
 
             if(!isset($elms[1])){
                 $elms[1] = '__invoke';

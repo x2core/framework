@@ -9,7 +9,7 @@ use Closure;
  * Class Runtime
  * @package X2Core\Util
  *
- * @desc Class to manager runtime and handler errors and provide tools to runtime control
+ * Class to manager runtime and handler errors and provide tools to runtime control
  */
 class Runtime
 {
@@ -29,10 +29,9 @@ class Runtime
     private static $bufferTags = [];
 
     /**
+     * Set to handle to errors
+     *
      * @param callable $handle
-     *
-     *
-     * @desc Set to handle to errors
      * @return void
      */
     public static function handleError($handle){
@@ -40,10 +39,9 @@ class Runtime
     }
 
     /**
+     * Set to handle to critical errors
+     *
      * @param callable $handle
-     *
-     *
-     * @desc Set to handle to critical errors
      * @return void
      */
     public static function handleErrorStrict($handle){
@@ -62,10 +60,10 @@ class Runtime
     }
 
     /**
+     * To prepare mode to detect run tags
+     *
      * @param null|string|array|callable
      * @param null|callable
-     *
-     * @desc to prepare mode to detect run tags
      * @return void
      */
     public static function detectRunTags(){
@@ -86,10 +84,10 @@ class Runtime
     }
 
     /**
+     * Emmit a tag to trigger handle with payload context
+     *
      * @param $tag
      * @param $payload
-     *
-     * @desc emmit a tag to trigger handle with payload context
      * @return void
      */
     public static function trigger($tag, $payload){
@@ -104,9 +102,10 @@ class Runtime
     }
 
     /**
+     * Execute and reset buffer array of tags
+     *
      * @param callable $fn
-     * @desc execute and reset buffer array of tags
-     * @void
+     * @return void
      */
     public static function flush($fn){
         $length = count(self::$bufferTags);
@@ -116,8 +115,9 @@ class Runtime
     }
 
     /**
-     * @desc reset buffer array of tags
-     * @void
+     * Reset buffer array of tags
+     *
+     * @return void
      */
     public static function resetBufferTags(){
         self::$bufferTags = [];
@@ -146,12 +146,13 @@ class Runtime
     }
 
     /**
+     * Make an action from of distinct types of sources
+     *
      * @param Closure|callable|string $srcAction
      * @param array|NULL $inject
      * @return Closure
      */
-    public static function action($srcAction, array $inject = NULL){
-        return function() use($srcAction, $inject){
+    public static function call($srcAction, array $inject = NULL){
             if (is_callable($srcAction)){
                 return $srcAction(...$inject);
             }elseif(is_string($srcAction)){
@@ -166,7 +167,6 @@ class Runtime
                 return $srcAction(...$inject);
             }
             throw new \RuntimeException('the action if not valid');
-        };
     }
 
     /**

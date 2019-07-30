@@ -2,7 +2,6 @@
 
 namespace X2Core;
 
-use Closure;
 use InvalidArgumentException;
 use Monolog\Logger;
 use Doctrine\DBAL\Connection;
@@ -14,13 +13,13 @@ use X2Core\Contracts\ActiveRecordInterface;
 use X2Core\Exceptions\ConfigureException;
 use X2Core\Exceptions\IntegrityException;
 use X2Core\Foundation\Database\Connector\DBAL;
-use X2Core\Foundation\Events\AppDeploy;
 use X2Core\Exceptions\RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use X2Core\Foundation\Events\AppError;
+use X2Core\Foundation\Events\AppDeploy;
 use X2Core\Foundation\Events\AppFinished;
 use X2Core\Foundation\Events\AppForceExit;
 use X2Core\Foundation\Events\AppRequestEvent;
@@ -43,7 +42,7 @@ use X2Core\Util\URL;
  * @package X2Core
  * @author Oliver Valiente <oliver021val@gmail.com>
  *
- * @desc This class is shortcut to use the all ability to need
+ * This class is shortcut to use the all ability to need
  * to create a web app of simple way and quickly
  *
  * QuickApplication is a implementation centralized but base on events and routes system
@@ -54,7 +53,7 @@ class QuickApplication extends Application
     /**
      * This is simple container to manager shared data of app
      *
-     * @var Cache
+     * @var array
      */
     private $bundle = [];
 
@@ -115,14 +114,6 @@ class QuickApplication extends Application
     private $middlewareCollect = [];
 
     /**
-     * This var is a container of services that can extend
-     * your app with other libraries
-     *
-     * @var Closure[] services
-     */
-    private $services;
-
-    /**
      * Callable container to filter shared values
      *
      * @var callable[][]
@@ -167,8 +158,31 @@ class QuickApplication extends Application
             $this->request->setSession($this->session = $session);
         }
 
+        // if in the config has a autoload key then to load workflow preset
+        if($wfs = $this->config('app.workflow')){
+            $this->autoloadWorkflow($wfs);
+        }
+
+        // if in the config has a workflow key then to load a preset
+        if($routes = $this->config('app.routes')){
+            $this->autoloadRoutes($routes);
+        }
+
+        // if in the config has a workflow key then to load a preset
+        if($events = $this->config('app.events')){
+            $this->autoloadEvents($events);
+        }
+
         // create cache support
         $this->cache = new \SplFileInfo($this->config('app.cache-file') ?? 'app.cache');
+
+        // register application support services
+        // in this part that register several internal services
+        $this->service(self::class, $this);
+        $this->service(Request::class, $this->request);
+        $this->service(Response::class, $this->response);
+        $this->service(Session::class, $this->session);
+        $this->service(Cache::class, $this->cache);
 
         // define action binder for default to important events
         // that this app emitted to execute
@@ -193,7 +207,6 @@ class QuickApplication extends Application
      *
      * @param object $event
      * @param mixed $context
-     *
      * @return void
      */
     public function onInteract($event, $context){
@@ -217,6 +230,7 @@ class QuickApplication extends Application
                 break;
 
             case AppFinished::class:
+                    $this->exit();
                 break;
 
             case HttpNotFound::class:
@@ -225,6 +239,10 @@ class QuickApplication extends Application
 
             case HttpError::class:
                 $this->response->setStatusCode($event->getCode())->send();
+                break;
+
+            default:
+                $this->log('An Event binder interacted with QuickApplication but not has support', Logger::WARNING);
                 break;
         }
     }
@@ -331,7 +349,7 @@ class QuickApplication extends Application
     private function processRoutes(){
         $route = $this->router->fetch(['*',$this->request->getMethod()], $this->request->getPathInfo());
         if($route->valid()){
-            $this->dispatch(new RouteMatchEvent, new RouteContext($route->current(), $this, $this->router));
+            $this->dispatch(new RouteMatchEvent, $route->current());
         }else{
             $this->dispatch(new NotMatchEvent, [$this, $this->router]);
         }
@@ -496,17 +514,24 @@ class QuickApplication extends Application
     }
 
     /**
+     * Set a group of controller base on a namespace and route match
+     *
      * @param $url
      * @param array $options
      * @throws ConfigureException
      */
     public function controllers($url, array $options){
-        if(!Arr::contains($options, ['class', 'method', 'match'])){
+        if(!Arr::contains($options, ['namespace'])){
             throw new ConfigureException('The requirements to set a controller is not enough');
         }
-        $this->route('*',$url . '/$ctrl/$method/*',
-            function(Request $request, Response $response, RouteContext $context) use($options){
-        });
+        $this->route('*',$url . '/*',
+            function(QuickApplication $app, $rest = NULL)
+            use($options){
+                $class = $options['namespace'];
+                $class .= "\\" . $rest[0] ?? "Index" . "Controller";
+                $class .= "@" . $rest[1] ?? "index" . "Action";
+                $app->call($class, count($rest) > 2 ? array_slice($rest, 2) : NULL);
+            });
     }
 
     /**
@@ -555,7 +580,6 @@ class QuickApplication extends Application
     }
 
     /**
-     *
      * Change db connection params
      *
      * @param $name
@@ -566,7 +590,6 @@ class QuickApplication extends Application
     }
 
     /**
-     *
      * To render template base on twig view engine
      *
      * @param $path
@@ -672,7 +695,6 @@ class QuickApplication extends Application
                 $this->logger->notice($msg);
                 break;
 
-
             case Logger::WARNING:
                 $this->logger->warn($msg);
                 break;
@@ -709,35 +731,6 @@ class QuickApplication extends Application
         }else{
             $this->log($msg, Logger::ERROR);
         }
-    }
-
-    /**
-     * @param $service
-     * @param Closure $fn
-     * @return $this
-     * @throws RuntimeException
-     */
-    public function service($service, Closure $fn){
-        if(!($fn instanceof Closure)){
-            throw new RuntimeException('Invalided Service Source');
-        }
-        $this->services[$service] = $fn;
-        return $this;
-    }
-
-    /**
-     * This magic method is a helper to execute a service that has been created
-     *
-     * @param $name
-     * @param $arguments
-     * @return mixed
-     */
-    public function __call($name, $arguments)
-    {
-        if(!isset($this->services[$name])){
-           throw new \BadMethodCallException;
-        }
-        return $this->services[$name]->call($this, ...$arguments);
     }
 
     /**
@@ -812,18 +805,16 @@ class QuickApplication extends Application
      * Handler to process a route
      *
      * @param $event
-     * @param $context
-     *
-     * @return void
+     * @param $route
+     * @return mixed
      */
-    public function dispatchRoute($event, RouteContext $context){
-            Runtime::action(
-                $context->getHandler(), [
-                    $this->request,
-                    $this->response,
-                    $context
-                ]
-            )();
+    private function dispatchRoute($event,  $route){
+        return $this->call($route['handle'] ,array_merge($route['parameter'], [
+            'body' => $this->request->request->all(),
+            'query' => $this->request->query->all(),
+            'session' => $this->request->getSession()->all(),
+            'cookie' => $this->request->cookies->all()
+        ]));
     }
 
     /**
@@ -869,7 +860,6 @@ class QuickApplication extends Application
     }
 
     /**
-     *
      * Dispatch an event before send headers of response
      *
      * @return void
@@ -880,7 +870,6 @@ class QuickApplication extends Application
     }
 
     /**
-     *
      * Init a Connection to database with default options or parameter function
      *
      * @param null $usage
@@ -895,10 +884,10 @@ class QuickApplication extends Application
             $config['user'],
             $config['pass'],
             $config['name']);
+        $this->service(\Doctrine\DBAL\Driver\Connection::class, $this->database);
     }
 
     /**
-     *
      * This method make a diagnostic about the problem of routes
      *
      * @return void
@@ -917,7 +906,6 @@ class QuickApplication extends Application
     }
 
     /**
-     *
      * Init Session handle with preset
      *
      * @return Session
@@ -936,5 +924,83 @@ class QuickApplication extends Application
         }
 
         return new $classHandle($this->getConfigSafe('app.session.options'));
+    }
+
+    /**
+     * System autoload routes allow define routes by array of configures
+     *
+     * @param array $routes
+     * @param string $prefix
+     * @throws ConfigureException
+     */
+    private function autoloadRoutes(array $routes, $prefix = ""){
+        foreach ($routes as $route){
+            if(!isset($route['path'])){
+                throw new ConfigureException('The route options is invalid, should be has key path');
+            }
+
+            if($prefix !== "")
+                $route['path'] = $prefix . '/' . $route['path'];
+            if(isset($route['controller'])){
+                $this->route($route['method'] ?? '*', $route['path'], $route['controller']);
+            }elseif (isset($route['dir_controllers'])){
+                $this->controllers($route['path'], $route['dir_controllers']);
+            }elseif(isset($route['view'])){
+                $this->route($route['method'] ?? '*', $route['path'], function() use($route){
+
+                });
+            }elseif (isset($route['dir_work'])){
+                $this->route(Request::METHOD_GET, $route['path'], function() use($route){
+
+                });
+            }
+
+            if(isset($route['append'])){
+                if(!is_array($route['append']))
+                    throw new ConfigureException('The append key in configuration routes should be an array');
+                $this->autoloadRoutes($route['append'], $route['path']);
+            }
+        }
+    }
+
+    /**
+     * This method load a preset of workflow
+     *
+     * @param array $set
+     * @throws ConfigureException
+     */
+    private function autoloadWorkflow(array $set){
+        foreach ($set as $workflow){
+            if(Arr::contains($workflow, ['name', 'source']))
+                throw new ConfigureException('The options to pass autoload workflow should has contains name and sourc keys');
+            $this->setWorkflow($workflow['name'], $workflow['source'], $workflow['dependencies'] ?? []);
+        }
+    }
+
+    /**
+     * Autoload og registration of Events
+     *
+     * @param array $events
+     */
+    private function autoloadEvents(array $events)
+    {
+        foreach ($events as $event => $listeners){
+            foreach (Arr::wrap($listeners) as $listener){
+                $this->listen($event, $listener);
+            }
+        }
+    }
+
+    /**
+     * shutdown application
+     *
+     * @return void
+     */
+    public function exit()
+    {
+        if($this->database){
+            $this->database->close();
+        }
+        exit;
     }
 }

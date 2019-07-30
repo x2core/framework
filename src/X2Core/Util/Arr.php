@@ -1,12 +1,14 @@
 <?php
 
 namespace X2Core\Util;
+
 use ArrayIterator;
-use Exception;
 
 /**
  * Class Arr
  * @package Eyrene\Support
+ *
+ * Several utilities to work with arrays
  */
 class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
 {
@@ -22,14 +24,27 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
 
     /**
      * Arr constructor.
+     *
      * @param $arr
      */
     public function __construct($arr)
     {
-        $this->arr = $arr;
+        $this->arr = self::wrap($arr);
     }
 
     /**
+     * if a value is not an array then wrap in array
+     *
+     * @param mixed $value
+     * @return array
+     */
+    public static  function wrap($value){
+        return is_array($value) ? $value : [$value];
+    }
+
+    /**
+     * Check if in an array if found the keys
+     *
      * @param array $arr
      * @param $indexes
      * @param bool $flag
@@ -52,6 +67,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * The same that contains but throw a exception if is failed
+     *
      * @param array $arr
      * @param $indexes
      * @param $exception
@@ -62,27 +79,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
-     * @param array $source
-     * @param $target
-     * @param array $hydration
-     * @return string
-     * @throws Exception
-     */
-    public static function hydrate(array $source, $target, array $hydration){
-        if(!($is_object = is_object($target)) && !(is_string($target) && class_exists($target))){
-            throw new Exception('The class not exists to hydrate');
-        }
-
-        $result = $is_object ? $target : new $target();
-
-        foreach (array_keys($hydration) as $name => $value ){
-            $result->{$name} = $source[$value];
-        }
-
-        return $result;
-    }
-
-    /**
+     * Check if both array has same value by a key
+     *
      * @param $key
      * @param array ...$elms
      * @return bool
@@ -117,6 +115,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Method factory to create instance of self class
+     *
      * @param array $arr
      * @return Arr
      */
@@ -125,6 +125,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of in_array
+     *
      * @param $arr
      * @param $elm
      * @return bool
@@ -135,13 +137,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
-     * @param array ...$arr
-     */
-    public function diff( ...$arr){
-        $this->arr = array_diff($this->arr,...$arr);
-    }
-
-    /**
+     * Simple implements of map function
+     *
      * @param $func
      * @return mixed
      * @internal param $name
@@ -165,6 +162,17 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of diff
+     *
+     * @param array ...$arr
+     */
+    public function diff( ...$arr){
+        $this->arr = array_diff($this->arr,...$arr);
+    }
+
+    /**
+     * Simple shortcut of slice
+     *
      * @param $offset
      * @param $length
      */
@@ -173,6 +181,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of splice
+     *
      * @param $offset
      * @param $length
      */
@@ -181,6 +191,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of push
+     *
      * @param $value
      */
     public function push($value){
@@ -188,6 +200,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of pop
+     *
      * @return mixed
      */
     public function pop(){
@@ -195,6 +209,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of shift
+     *
      * @return mixed
      */
     public function shift(){
@@ -202,6 +218,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of unshift
+     *
      * @param $value
      */
     public function unshift($value){
@@ -209,6 +227,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of merge
+     *
      * @param $arr
      */
     public function merge($arr){
@@ -216,6 +236,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Simple shortcut of search
+     *
      * @param $elm
      * @return false|int|string
      */
@@ -224,6 +246,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Sort an array by keys
+     *
      * @param bool $descending
      * @param null $sortFlags
      * @return bool
@@ -233,6 +257,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Sort an array by values
+     *
      * @param bool $descending
      * @param null $sortFlags
      * @return bool
@@ -242,6 +268,8 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
     }
 
     /**
+     * Sort an array by custom comparision from user function or Closure
+     *
      * @param callable $fn
      * @param int $target
      * @return bool
