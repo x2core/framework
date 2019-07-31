@@ -5,6 +5,8 @@ namespace X2Core\Contracts;
 
 interface ContainerInterface
 {
+    public function resolve($name);
+    public function has($name);
     public function differed($name, \Closure $closure);
     public function service($name,  $service);
     public function install(ProviderInterface $provider);

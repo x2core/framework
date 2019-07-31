@@ -182,6 +182,24 @@ class Str
     }
 
     /**
+     * Shortcut to sanitize string
+     *
+     * @param $str
+     * @param string $fallback
+     * @return mixed
+     */
+    public static function sanitize($str, $fallback = ""){
+        return filter_var($str, FILTER_SANITIZE_STRING, ['default' => $fallback]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function url($str, $fallback = ""){
+        return filter_var($str, FILTER_SANITIZE_URL, ['default' => $fallback]);
+    }
+
+    /**
      * Get random string through simple algorithm
      *
      * @param $len
@@ -194,5 +212,84 @@ class Str
             $str .= chr(mt_rand(32, $limit));
         }
         return $str;
+    }
+
+    /**
+     * Make a explode by several deliminators and generate result
+     *
+     * @param $str
+     * @param $tokens
+     * @param bool $inverse
+     * @return \Generator
+     */
+    public static function split($str, $tokens, $inverse = false)
+    {
+        $tokens = Arr::wrap($tokens);
+        $chunk = "";
+        $length = strlen($str);
+        if($inverse){
+            for($i = $length - 1; $i >= 0; $i--){
+                if(in_array($str[$i], $tokens))
+                    yield strrev($chunk);
+                else
+                    $chunk .= $str[$i];
+            }
+            yield strrev($chunk);
+        }else{
+            for($i = 0; $i < $length; $i++){
+                if(in_array($str[$i], $tokens))
+                    yield $chunk;
+                else
+                    $chunk .= $str[$i];
+            }
+            yield $chunk;
+        }
+    }
+
+    /**
+     * @param $str
+     * @param $length
+     * @param $inverse
+     * @return string
+     */
+    public static function pull(&$str, $length, $inverse = false)
+    {
+        $chunk = "";
+        $alterStr = "";
+        $strlen = strlen($str);
+
+        if($inverse){
+            for($i = 1; $i < $strlen; $i--){
+                if($i <= $length)
+                    $chunk .= $str[$strlen - $i];
+                else
+                    $alterStr .= $str[$i];
+            }
+            $chunk = strrev($chunk);
+            $alterStr = strrev($alterStr);
+        }else{
+            for($i = 0; $i < $strlen; $i++){
+                if($i < $length){
+                    $chunk .= $str[$i];
+                }else{
+                    $alterStr .= $str[$i];
+                }
+            }
+        }
+
+        $str = $alterStr;
+        return $chunk;
+    }
+
+    /**
+     * @param $str
+     * @param $chunk
+     */
+    public static function pullFromEnd(&$str, $chunk)
+    {
+        if(self::end($str, $chunk)){
+            $count = strlen($chunk);
+            self::pull($str, $count, true);
+        }
     }
 }

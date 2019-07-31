@@ -1,6 +1,7 @@
 <?php
 
 namespace X2Core;
+
 use Closure;
 use InvalidArgumentException;
 use X2Core\Contracts\ContainerInterface;
@@ -10,13 +11,15 @@ use X2Core\Exceptions\FactoryNotFound;
 use X2Core\Exceptions\RuntimeException;
 use X2Core\Util\Reflection;
 use X2Core\Util\Runtime;
+use X2Core\Util\Str;
 
 /**
  * Class Application
  * @package X2Core
  * @author Oliver Valiente <oliver021val@gmail.com>
+ * @abstract
  *
- * This a class to extend a dispatcher to manager flow control, configures, container bundled nad
+ * This a class to extend a dispatcher to manager flow control, configures, container and
  * provide a cover to wrapper a webApp or several system
  */
 abstract class Application extends Dispatcher implements ContainerInterface
@@ -70,6 +73,21 @@ abstract class Application extends Dispatcher implements ContainerInterface
     private $builders = [];
 
     /**
+     * @param $filename
+     * @param $ext
+     * @param $process
+     * @return mixed|null
+     */
+    private static function processConfig($filename, $ext, $process)
+    {
+        if(isset($process[$ext]))
+            return $process[$ext]($filename);
+        else
+            return NULL;
+
+    }
+
+    /**
      * @abstract
      * @return void
      */
@@ -80,6 +98,36 @@ abstract class Application extends Dispatcher implements ContainerInterface
      * @return void
      */
     abstract public function exit();
+
+    /**
+     * This function register to all value of file (.php) as config or (.?) process
+     *
+     * @param $path
+     * @param array $process
+     * @param string $prefix
+     * @return void
+     */
+    public function setConfigDir($path, array $process = [], $prefix = "")
+    {
+        $files = scandir($path);
+        $length = count($files);
+        for($i = 0; $i < $length; $i++){
+            $filename = $path . DIRECTORY_SEPARATOR . ($name = $files[$i]);
+            $ext = Str::split($filename, '.', true)->current();
+            Str::pullFromEnd($name, $ext);
+            if(is_file($filename)){
+                if (Str::end($filename, '.php')) {
+                    $values = (include $filename);
+                } else {
+                    $values = self::processConfig($filename, $ext, $process);
+                }
+                if($values !== NULL)
+                    $this->config($prefix !== "" ? $prefix . '.' . $name : $name, $values);
+            }elseif (is_dir($filename)){
+                $this->setConfigDir($filename,$process, $name);
+            }
+        }
+    }
 
     /**
      * @param $typeTarget
@@ -97,6 +145,14 @@ abstract class Application extends Dispatcher implements ContainerInterface
      */
     public function resolve($service, $alt = NULL){
         return $this->services[$service] ?? $alt;
+    }
+
+    /**
+     * @param $service
+     * @return bool
+     */
+    public function has($service){
+        return isset($this->services[$service]);
     }
 
     /**

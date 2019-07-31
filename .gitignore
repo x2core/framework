@@ -4,4 +4,5 @@ composer.lock
 trash/
 test/cache/*
 test/app-experimental/*
+test/app-experimental/icons/*
 app-test-server.bat

@@ -103,5 +103,4 @@ class Hash
         $result = hash('crc32b', $value);
         return $checkValue ? $result === $checkValue : $result;
     }
-
 }

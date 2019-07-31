@@ -3,6 +3,7 @@
 namespace X2Core;
 
 use RuntimeException;
+use X2Core\Exceptions\IntegrityException;
 
 /**
  * Class Hub

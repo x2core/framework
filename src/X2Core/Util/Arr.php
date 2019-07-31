@@ -447,6 +447,11 @@ class Arr implements \Countable, \Iterator, \ArrayAccess, \Serializable
         unset($this->arr[$offset]);
     }
 
+    public function __debugInfo()
+    {
+        var_dump($this->arr);
+    }
+
     /**
      * String representation of object
      * @link http://php.net/manual/en/serializable.serialize.php
