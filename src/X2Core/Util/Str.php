@@ -49,7 +49,7 @@ class Str
      */
     public static function toSlugFormat($str)
     {
-        return join('',(is_array($str)) ? $str : self::camelCaseParse($str));
+        return join('-',(is_array($str)) ? $str : self::camelCaseParse($str));
     }
 
     /**
