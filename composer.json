@@ -10,7 +10,18 @@
         }
     ],
     "require": {
+<<<<<<< HEAD
         
+=======
+        "symfony/http-foundation": "^4.3",
+        "doctrine/dbal": "^2.9",
+        "monolog/monolog": "^1.24",
+        "twig/twig": "^2.11",
+        "doctrine/cache": "^1.8",
+        "doctrine/inflector": "^1.3",
+        "opis/closure": "^3.3",
+        "kriswallsmith/assetic": "^1.4"
+>>>>>>> repack
     },
     "require-dev": {
         "phpunit/phpunit": "^4.0"

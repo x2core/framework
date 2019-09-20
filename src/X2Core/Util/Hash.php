@@ -26,7 +26,11 @@ class Hash
      * @return bool|string
      * @throws RuntimeException
      */
-    public static function bycrpt($value, $rounds = PASSWORD_BCRYPT_DEFAULT_COST, $checkHash = NULL){
+    public static function bycrpt($value, $rounds = null, $checkHash = NULL){
+        if($rounds){
+            $rounds = PASSWORD_BCRYPT_DEFAULT_COST;
+        }
+
         $result = password_hash($value, PASSWORD_BCRYPT, [
             'cost' => ['rounds' => $rounds],
         ]);
