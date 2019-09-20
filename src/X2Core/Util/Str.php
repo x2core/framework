@@ -1,7 +1,7 @@
 <?php
 
 namespace X2Core\Util;
-use X2Core\Types\IterableString;
+use X2Core\Preset\IterableString;
 
 /**
  * Class Str

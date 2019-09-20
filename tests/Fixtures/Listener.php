@@ -3,7 +3,7 @@
 namespace Test;
 
 
-use X2Core\Contracts\ListenerInterface;
+use X2Core\Preset\Contracts\ListenerInterface;
 
 class Listener implements ListenerInterface
 {
